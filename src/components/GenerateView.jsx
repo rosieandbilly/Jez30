@@ -65,7 +65,6 @@ export default function GenerateView({ workouts, onSave }) {
     onSave(workout)
   }
 
-  // Show the previous top set for each exercise
   const last = findPrevWorkout(workouts, template, '9999')
 
   return (
@@ -87,23 +86,17 @@ export default function GenerateView({ workouts, onSave }) {
       </div>
 
       {last && (
-        <div className="px-12 pb-16">
-          <div style={{
-            background: 'var(--surface)',
-            borderRadius: 10,
-            padding: '10px 14px',
-            fontSize: 12,
-            color: 'var(--text-dim)',
-          }}>
+        <div style={{ padding: '0 16px 12px' }}>
+          <div className="info-box">
             Based on last {template} — top sets +2.5 kg. Tap any number to edit.
           </div>
         </div>
       )}
 
       {exercises.map((ex, exIdx) => {
-        const lastEx   = last?.exercises.find(e => e.name === ex.name)
-        const lastTop  = lastEx ? getTopSet(lastEx) : null
-        const thisTop  = ex.sets.find(s => s.type === 'top')
+        const lastEx  = last?.exercises.find(e => e.name === ex.name)
+        const lastTop = lastEx ? getTopSet(lastEx) : null
+        const thisTop = ex.sets.find(s => s.type === 'top')
 
         return (
           <div className="card" key={exIdx}>
@@ -112,7 +105,7 @@ export default function GenerateView({ workouts, onSave }) {
               <div className="prev-note">
                 Last: <span>{lastTop.weight}kg&thinsp;&times;&thinsp;{lastTop.reps}</span>
                 {thisTop && (
-                  <span style={{ marginLeft: 8, color: 'var(--success)', fontWeight: 700 }}>
+                  <span style={{ marginLeft: 8, color: 'var(--success-text)', fontWeight: 700 }}>
                     → {thisTop.weight}kg
                   </span>
                 )}
@@ -153,7 +146,7 @@ export default function GenerateView({ workouts, onSave }) {
         )
       })}
 
-      <div className="px-12 pb-16">
+      <div style={{ padding: '0 16px 16px' }}>
         <button className="btn btn-primary" onClick={handleSave}>
           Save Workout
         </button>

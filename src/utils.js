@@ -97,3 +97,147 @@ export function find3WeeksAgo(workouts, template, fromDate, excludeId = null) {
     return da - db
   })[0]
 }
+
+/**
+ * Normalize a date string to YYYY-MM-DD (local date key).
+ */
+export function getDateKey(dateStr) {
+  return dateStr.length === 10 ? dateStr : dateStr.split('T')[0]
+}
+
+/**
+ * Group workouts by YYYY-MM-DD date key.
+ * Returns { 'YYYY-MM-DD': [workout, ...], ... }
+ */
+export function groupByDate(workouts) {
+  const map = {}
+  workouts.forEach(w => {
+    const key = getDateKey(w.date)
+    if (!map[key]) map[key] = []
+    map[key].push(w)
+  })
+  return map
+}
+
+/**
+ * Generate a calendar grid for a given year/month.
+ * Week starts on Monday.
+ * Returns array of { date, key, day, isCurrentMonth, isToday }
+ */
+export function getCalendarGrid(year, month) {
+  const todayKey = new Date().toISOString().split('T')[0]
+  const firstOfMonth = new Date(year, month, 1)
+  const lastOfMonth = new Date(year, month + 1, 0)
+
+  // Start from Monday on or before first day of month
+  const start = new Date(firstOfMonth)
+  const startDow = start.getDay() // 0=Sun
+  start.setDate(start.getDate() - (startDow === 0 ? 6 : startDow - 1))
+
+  const cells = []
+  const cur = new Date(start)
+
+  while (cur <= lastOfMonth || cells.length % 7 !== 0) {
+    const key = cur.toISOString().split('T')[0]
+    cells.push({
+      date: new Date(cur),
+      key,
+      day: cur.getDate(),
+      isCurrentMonth: cur.getMonth() === month,
+      isToday: key === todayKey,
+    })
+    cur.setDate(cur.getDate() + 1)
+    if (cells.length >= 42) break // max 6 rows
+  }
+
+  return cells
+}
+
+/**
+ * Calculate total working volume for a workout (excludes warmup sets).
+ */
+export function calcTotalVolume(workout) {
+  return workout.exercises.reduce((vol, ex) =>
+    vol + ex.sets
+      .filter(s => s.type !== 'warmup')
+      .reduce((s, set) => s + set.weight * set.reps, 0),
+    0
+  )
+}
+
+/**
+ * Format a volume number compactly (e.g. 2150 → "2.2k").
+ */
+export function fmtVol(v) {
+  if (v >= 1000) return (v / 1000).toFixed(1) + 'k'
+  return Math.round(v).toString()
+}
+
+/**
+ * Build activity chart data for the last N days.
+ * Returns array of { key, label, count }.
+ * - ≤14 days: one bar per day
+ * - ≤90 days: one bar per week (Mon–Sun)
+ * - >90 days: one bar per month
+ */
+export function buildActivityChart(workouts, days) {
+  const now = new Date()
+  const cutoffDate = new Date(now)
+  cutoffDate.setDate(cutoffDate.getDate() - days)
+
+  if (days <= 14) {
+    const result = []
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i)
+      const key = d.toISOString().split('T')[0]
+      const count = workouts.filter(w => getDateKey(w.date) === key).length
+      result.push({
+        key,
+        label: d.toLocaleDateString('en-GB', { weekday: 'short' }).charAt(0),
+        count,
+      })
+    }
+    return result
+  }
+
+  if (days <= 90) {
+    // Weekly bars
+    const startMon = new Date(cutoffDate)
+    const sd = startMon.getDay()
+    startMon.setDate(startMon.getDate() - (sd === 0 ? 6 : sd - 1))
+
+    const weeks = []
+    const cur = new Date(startMon)
+    while (cur <= now) {
+      const wsKey = cur.toISOString().split('T')[0]
+      const we = new Date(cur)
+      we.setDate(we.getDate() + 6)
+      const weKey = we.toISOString().split('T')[0]
+      const count = workouts.filter(w => {
+        const dk = getDateKey(w.date)
+        return dk >= wsKey && dk <= weKey
+      }).length
+      const label = cur.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+      weeks.push({ key: wsKey, label, count })
+      cur.setDate(cur.getDate() + 7)
+    }
+    return weeks
+  }
+
+  // Monthly bars
+  const cur = new Date(cutoffDate.getFullYear(), cutoffDate.getMonth(), 1)
+  const months = []
+  while (cur <= now) {
+    const y = cur.getFullYear()
+    const m = cur.getMonth()
+    const count = workouts.filter(w => {
+      const d = new Date(w.date)
+      return d.getFullYear() === y && d.getMonth() === m
+    }).length
+    const label = cur.toLocaleDateString('en-GB', { month: 'short' })
+    months.push({ key: `${y}-${m}`, label, count })
+    cur.setMonth(cur.getMonth() + 1)
+  }
+  return months
+}

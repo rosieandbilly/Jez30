@@ -72,33 +72,42 @@ export default function BodyweightView({ bodyweights, onAdd }) {
       <div className="section-label">History</div>
 
       {sorted.length === 0 ? (
-        <div style={{ padding: '8px 16px', color: 'var(--text-dim)', fontSize: 13 }}>
-          No entries yet.
+        <div className="card">
+          <span className="c-dim fs-13">No entries yet.</span>
         </div>
       ) : (
-        sorted.map((entry, i) => {
-          const next = sorted[i + 1]
-          const delta = next ? (entry.weight - next.weight) : null
-          const deltaStr = delta !== null
-            ? (delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1))
-            : null
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          {sorted.map((entry, i) => {
+            const next = sorted[i + 1]
+            const delta = next ? (entry.weight - next.weight) : null
+            const deltaStr = delta !== null
+              ? (delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1))
+              : null
 
-          return (
-            <div className="list-item" key={entry.id}>
-              <span className="fs-13 c-dim">{entry.date}</span>
-              <div className="row gap-8">
-                <span className="fw-700">{entry.weight} kg</span>
-                {deltaStr && (
-                  <span
-                    className={`delta ${delta > 0 ? 'delta-pos' : delta < 0 ? 'delta-neg' : 'delta-neu'}`}
-                  >
-                    {deltaStr}
-                  </span>
-                )}
+            return (
+              <div
+                key={entry.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '11px 16px',
+                  borderBottom: i < sorted.length - 1 ? '1px solid var(--border-soft)' : 'none',
+                }}
+              >
+                <span className="fs-13 c-dim">{entry.date}</span>
+                <div className="row gap-8">
+                  <span className="fw-700">{entry.weight} kg</span>
+                  {deltaStr && (
+                    <span className={`delta ${delta > 0 ? 'delta-pos' : delta < 0 ? 'delta-neg' : 'delta-neu'}`}>
+                      {deltaStr}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          )
-        })
+            )
+          })}
+        </div>
       )}
 
       <div style={{ height: 16 }} />

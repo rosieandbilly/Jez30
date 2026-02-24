@@ -6,6 +6,7 @@ import WorkoutDetail from './components/WorkoutDetail'
 import GenerateView from './components/GenerateView'
 import ProgressView from './components/ProgressView'
 import BodyweightView from './components/BodyweightView'
+import CalendarView from './components/CalendarView'
 
 const STORAGE_KEY = 'jez30-tracker-v1'
 
@@ -41,17 +42,27 @@ export default function App() {
     setTab('history')
   }
 
+  function handleSelectWorkout(id) {
+    setDetailId(id)
+  }
+
+  function handleBack() {
+    setDetailId(null)
+  }
+
   const sortedWorkouts = [...data.workouts].sort((a, b) => b.date.localeCompare(a.date))
 
   if (detailId) {
     const workout = data.workouts.find(w => w.id === detailId)
     return (
       <div className="app">
-        <WorkoutDetail
-          workout={workout}
-          workouts={data.workouts}
-          onBack={() => setDetailId(null)}
-        />
+        <div className="content">
+          <WorkoutDetail
+            workout={workout}
+            workouts={data.workouts}
+            onBack={handleBack}
+          />
+        </div>
       </div>
     )
   }
@@ -60,7 +71,10 @@ export default function App() {
     <div className="app">
       <div className="content">
         {tab === 'history' && (
-          <HistoryView workouts={sortedWorkouts} onSelect={setDetailId} />
+          <HistoryView workouts={sortedWorkouts} onSelect={handleSelectWorkout} />
+        )}
+        {tab === 'calendar' && (
+          <CalendarView workouts={data.workouts} onSelectWorkout={handleSelectWorkout} />
         )}
         {tab === 'generate' && (
           <GenerateView workouts={data.workouts} onSave={handleSaveWorkout} />
