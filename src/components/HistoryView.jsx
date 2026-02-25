@@ -79,7 +79,7 @@ export default function HistoryView({ workouts, onSelect }) {
               <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
           </div>
-          No workouts yet.<br />Tap Generate to start your first session.
+          No workouts yet.<br />Tap Create to start your first session.
         </div>
       </div>
     )

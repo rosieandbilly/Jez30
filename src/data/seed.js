@@ -1,5 +1,6 @@
 /**
  * Workout templates with default weights/reps and whether to include back-off sets.
+ * Kept for backward compatibility; CreateView uses SEED_TEMPLATES instead.
  */
 export const TEMPLATES = {
   'Upper A': [
@@ -24,6 +25,66 @@ export const TEMPLATES = {
     { name: 'Cable Fly',           defaultWeight: 12.5, defaultReps: 12, backoff: false },
   ],
 }
+
+// ─── Exercise Library Seed ────────────────────────────────────────────────────
+// Each exercise has: id, name, bodyArea, notes
+// bodyArea: 'Upper Body' | 'Lower Body' | 'Core' | 'Full Body'
+
+export const SEED_EXERCISES = [
+  { id: 'ex-01', name: 'Barbell Bench Press', bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-02', name: 'Barbell Row',         bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-03', name: 'Overhead Press',      bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-04', name: 'Lat Pulldown',        bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-05', name: 'Barbell Curl',        bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-06', name: 'Incline Bench Press', bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-07', name: 'Lateral Raise',       bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-08', name: 'Tricep Pushdown',     bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-09', name: 'Cable Fly',           bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-10', name: 'Squat',               bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-11', name: 'Romanian Deadlift',   bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-12', name: 'Leg Press',           bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-13', name: 'Leg Curl',            bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-14', name: 'Calf Raise',          bodyArea: 'Lower Body', notes: '' },
+]
+
+// ─── Workout Template Seed ────────────────────────────────────────────────────
+// Each template has: id, name, exercises[{name, defaultWeight, defaultReps, backoff}]
+
+export const SEED_TEMPLATES = [
+  {
+    id: 'tpl-01',
+    name: 'Upper A',
+    exercises: [
+      { name: 'Barbell Bench Press', defaultWeight: 60,   defaultReps: 5,  backoff: true  },
+      { name: 'Barbell Row',         defaultWeight: 60,   defaultReps: 5,  backoff: true  },
+      { name: 'Overhead Press',      defaultWeight: 40,   defaultReps: 5,  backoff: true  },
+      { name: 'Lat Pulldown',        defaultWeight: 50,   defaultReps: 8,  backoff: true  },
+      { name: 'Barbell Curl',        defaultWeight: 25,   defaultReps: 10, backoff: false },
+    ],
+  },
+  {
+    id: 'tpl-02',
+    name: 'Lower A',
+    exercises: [
+      { name: 'Squat',               defaultWeight: 80,   defaultReps: 5,  backoff: true  },
+      { name: 'Romanian Deadlift',   defaultWeight: 70,   defaultReps: 6,  backoff: true  },
+      { name: 'Leg Press',           defaultWeight: 120,  defaultReps: 10, backoff: true  },
+      { name: 'Leg Curl',            defaultWeight: 40,   defaultReps: 10, backoff: false },
+      { name: 'Calf Raise',          defaultWeight: 60,   defaultReps: 15, backoff: false },
+    ],
+  },
+  {
+    id: 'tpl-03',
+    name: 'Push',
+    exercises: [
+      { name: 'Overhead Press',      defaultWeight: 40,   defaultReps: 5,  backoff: true  },
+      { name: 'Incline Bench Press', defaultWeight: 55,   defaultReps: 6,  backoff: true  },
+      { name: 'Lateral Raise',       defaultWeight: 10,   defaultReps: 12, backoff: false },
+      { name: 'Tricep Pushdown',     defaultWeight: 30,   defaultReps: 12, backoff: false },
+      { name: 'Cable Fly',           defaultWeight: 12.5, defaultReps: 12, backoff: false },
+    ],
+  },
+]
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
