@@ -3,7 +3,6 @@
  * Handles both "YYYY-MM-DD" and full ISO strings.
  */
 export function formatDate(dateStr) {
-  // Add noon time for date-only strings to avoid UTC shift issues
   const iso = dateStr.length === 10 ? dateStr + 'T12:00:00' : dateStr
   const date = new Date(iso)
   const now = new Date()
@@ -98,21 +97,38 @@ export function find3WeeksAgo(workouts, template, fromDate, excludeId = null) {
   })[0]
 }
 
-/**
- * Normalize a date string to YYYY-MM-DD (local date key).
- */
-export function getDateKey(dateStr) {
-  return dateStr.length === 10 ? dateStr : dateStr.split('T')[0]
+/** Build a YYYY-MM-DD string from a Date using local timezone. */
+function _lk(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/** Return today's date as YYYY-MM-DD in the local timezone. */
+export function todayLocalKey() {
+  return _lk(new Date())
 }
 
 /**
- * Group workouts by YYYY-MM-DD date key.
+ * Normalize a date string to YYYY-MM-DD using local timezone.
+ * Handles both "YYYY-MM-DD" and full ISO strings.
+ */
+export function getDateKey(dateStr) {
+  if (!dateStr) return ''
+  if (dateStr.length === 10) return dateStr
+  return _lk(new Date(dateStr))
+}
+
+/**
+ * Group workouts by YYYY-MM-DD local date key.
+ * Prefers localDateKey if set on the workout, otherwise derives from date.
  * Returns { 'YYYY-MM-DD': [workout, ...], ... }
  */
 export function groupByDate(workouts) {
   const map = {}
   workouts.forEach(w => {
-    const key = getDateKey(w.date)
+    const key = w.localDateKey || getDateKey(w.date)
     if (!map[key]) map[key] = []
     map[key].push(w)
   })
@@ -125,11 +141,10 @@ export function groupByDate(workouts) {
  * Returns array of { date, key, day, isCurrentMonth, isToday }
  */
 export function getCalendarGrid(year, month) {
-  const todayKey = new Date().toISOString().split('T')[0]
+  const todayKey = todayLocalKey()
   const firstOfMonth = new Date(year, month, 1)
   const lastOfMonth = new Date(year, month + 1, 0)
 
-  // Start from Monday on or before first day of month
   const start = new Date(firstOfMonth)
   const startDow = start.getDay() // 0=Sun
   start.setDate(start.getDate() - (startDow === 0 ? 6 : startDow - 1))
@@ -138,7 +153,7 @@ export function getCalendarGrid(year, month) {
   const cur = new Date(start)
 
   while (cur <= lastOfMonth || cells.length % 7 !== 0) {
-    const key = cur.toISOString().split('T')[0]
+    const key = _lk(cur)
     cells.push({
       date: new Date(cur),
       key,
@@ -147,7 +162,7 @@ export function getCalendarGrid(year, month) {
       isToday: key === todayKey,
     })
     cur.setDate(cur.getDate() + 1)
-    if (cells.length >= 42) break // max 6 rows
+    if (cells.length >= 42) break
   }
 
   return cells
@@ -174,6 +189,28 @@ export function fmtVol(v) {
 }
 
 /**
+ * Estimate 1RM using the Brzycki formula.
+ * Clamps reps to a safe range.
+ */
+export function calc1RM(weight, reps) {
+  if (!reps || reps <= 1) return weight
+  return Math.round(weight * (36 / (37 - Math.min(reps, 36))))
+}
+
+/**
+ * Abbreviate an exercise name for compact display.
+ * Strips common equipment prefixes and truncates to ~15 chars.
+ */
+export function abbrevExercise(name) {
+  const STRIP = ['Barbell ', 'Dumbbell ', 'Cable ', 'EZ Bar ', 'EZ-Bar ', 'Machine ']
+  let s = name
+  for (const prefix of STRIP) {
+    if (name.startsWith(prefix)) { s = name.slice(prefix.length); break }
+  }
+  return s.length > 15 ? s.slice(0, 14) + '…' : s
+}
+
+/**
  * Build activity chart data for the last N days.
  * Returns array of { key, label, count }.
  * - ≤14 days: one bar per day
@@ -190,8 +227,8 @@ export function buildActivityChart(workouts, days) {
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(now)
       d.setDate(d.getDate() - i)
-      const key = d.toISOString().split('T')[0]
-      const count = workouts.filter(w => getDateKey(w.date) === key).length
+      const key = _lk(d)
+      const count = workouts.filter(w => (w.localDateKey || getDateKey(w.date)) === key).length
       result.push({
         key,
         label: d.toLocaleDateString('en-GB', { weekday: 'short' }).charAt(0),
@@ -202,7 +239,6 @@ export function buildActivityChart(workouts, days) {
   }
 
   if (days <= 90) {
-    // Weekly bars
     const startMon = new Date(cutoffDate)
     const sd = startMon.getDay()
     startMon.setDate(startMon.getDate() - (sd === 0 ? 6 : sd - 1))
@@ -210,12 +246,12 @@ export function buildActivityChart(workouts, days) {
     const weeks = []
     const cur = new Date(startMon)
     while (cur <= now) {
-      const wsKey = cur.toISOString().split('T')[0]
+      const wsKey = _lk(cur)
       const we = new Date(cur)
       we.setDate(we.getDate() + 6)
-      const weKey = we.toISOString().split('T')[0]
+      const weKey = _lk(we)
       const count = workouts.filter(w => {
-        const dk = getDateKey(w.date)
+        const dk = w.localDateKey || getDateKey(w.date)
         return dk >= wsKey && dk <= weKey
       }).length
       const label = cur.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
@@ -230,13 +266,11 @@ export function buildActivityChart(workouts, days) {
   const months = []
   while (cur <= now) {
     const y = cur.getFullYear()
-    const m = cur.getMonth()
-    const count = workouts.filter(w => {
-      const d = new Date(w.date)
-      return d.getFullYear() === y && d.getMonth() === m
-    }).length
+    const mo = cur.getMonth()
+    const prefix = `${y}-${String(mo + 1).padStart(2, '0')}`
+    const count = workouts.filter(w => (w.localDateKey || getDateKey(w.date)).startsWith(prefix)).length
     const label = cur.toLocaleDateString('en-GB', { month: 'short' })
-    months.push({ key: `${y}-${m}`, label, count })
+    months.push({ key: `${y}-${mo}`, label, count })
     cur.setMonth(cur.getMonth() + 1)
   }
   return months

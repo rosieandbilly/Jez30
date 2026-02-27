@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { formatDate, tagClass, getTopSet, getDateKey, buildActivityChart } from '../utils'
+import { formatDate, tagClass, getTopSet, getDateKey, buildActivityChart, abbrevExercise } from '../utils'
 import WorkoutIcon from './WorkoutIcon'
 
 const PERIODS = [
@@ -12,7 +12,10 @@ const PERIODS = [
 function getCutoffKey(days) {
   const d = new Date()
   d.setDate(d.getDate() - days)
-  return d.toISOString().split('T')[0]
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 export default function HistoryView({ workouts, onSelect }) {
@@ -21,15 +24,15 @@ export default function HistoryView({ workouts, onSelect }) {
   const { days } = PERIODS[periodIdx]
   const cutoff = getCutoffKey(days)
 
-  // Workouts within the selected period
+  // Workouts within the selected period (use localDateKey when available)
   const filtered = useMemo(
-    () => workouts.filter(w => getDateKey(w.date) >= cutoff),
+    () => workouts.filter(w => (w.localDateKey || getDateKey(w.date)) >= cutoff),
     [workouts, cutoff]
   )
 
   // Stats for the period
   const daysActive = useMemo(
-    () => new Set(filtered.map(w => getDateKey(w.date))).size,
+    () => new Set(filtered.map(w => w.localDateKey || getDateKey(w.date))).size,
     [filtered]
   )
   const totalSets = useMemo(
@@ -193,7 +196,7 @@ function WorkoutCard({ workout, onSelect }) {
     .slice(0, 3)
     .map(ex => {
       const top = getTopSet(ex)
-      return `${ex.name.split(' ').pop()} ${top.weight}kg`
+      return `${abbrevExercise(ex.name)} ${top.weight}kg`
     })
     .join('  ·  ')
 

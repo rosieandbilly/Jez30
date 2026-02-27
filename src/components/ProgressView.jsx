@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
-import { getTopSet, formatDate, getDateKey, fmtVol } from '../utils'
+import { getTopSet, formatDate, getDateKey, fmtVol, calc1RM } from '../utils'
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const PERIODS = [
   { label: '7d',  days: 7   },
@@ -15,19 +15,20 @@ function getCutoff(days) {
   if (!isFinite(days)) return '0000-00-00'
   const d = new Date()
   d.setDate(d.getDate() - days)
-  return d.toISOString().split('T')[0]
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 // ─── Data helpers ─────────────────────────────────────────────────────────────
 
-/** All unique exercise names across all logged workouts, sorted A-Z */
 function getExerciseNames(workouts) {
   const names = new Set()
   workouts.forEach(w => w.exercises.forEach(ex => names.add(ex.name)))
   return [...names].sort()
 }
 
-/** Per-exercise history: one entry per workout session that includes the exercise */
 function getExerciseHistory(workouts, exerciseName) {
   const sessions = []
   workouts.forEach(w => {
@@ -38,7 +39,7 @@ function getExerciseHistory(workouts, exerciseName) {
       .filter(s => s.type !== 'warmup')
       .reduce((sum, s) => sum + s.weight * s.reps, 0)
     sessions.push({
-      dateKey:   getDateKey(w.date),
+      dateKey:   w.localDateKey || getDateKey(w.date),
       dateLabel: formatDate(w.date),
       workoutId: w.id,
       topWeight: top.weight,
@@ -47,7 +48,6 @@ function getExerciseHistory(workouts, exerciseName) {
       sets:      ex.sets,
     })
   })
-  // Oldest first for charts, newest first for lists
   return sessions.sort((a, b) => a.dateKey.localeCompare(b.dateKey))
 }
 
@@ -56,8 +56,8 @@ function getExerciseHistory(workouts, exerciseName) {
 function ExerciseProgressDetail({ exerciseName, workouts, onBack }) {
   const [periodIdx, setPeriodIdx] = useState(2) // default 90d
 
-  const { days } = PERIODS[periodIdx]
-  const cutoff   = getCutoff(days)
+  const { days }  = PERIODS[periodIdx]
+  const cutoff    = getCutoff(days)
 
   const allHistory = useMemo(
     () => getExerciseHistory(workouts, exerciseName),
@@ -69,22 +69,26 @@ function ExerciseProgressDetail({ exerciseName, workouts, onBack }) {
     [allHistory, cutoff]
   )
 
-  const bestWeight    = filtered.length > 0 ? Math.max(...filtered.map(s => s.topWeight)) : 0
+  // ── PR metrics ─────────────────────────────────────────────────────────
+  const bestWeight = filtered.length > 0 ? Math.max(...filtered.map(s => s.topWeight)) : 0
+  const bestEntry  = filtered.find(s => s.topWeight === bestWeight) || null
+  const estRM      = bestEntry ? calc1RM(bestEntry.topWeight, bestEntry.topReps) : 0
+  const repPR      = filtered
+    .filter(s => s.topWeight === bestWeight)
+    .reduce((max, s) => Math.max(max, s.topReps), 0)
+  const volPR      = filtered.length > 0 ? Math.max(...filtered.map(s => s.volume)) : 0
+
   const totalSessions = filtered.length
   const avgVol        = filtered.length > 0
     ? filtered.reduce((s, h) => s + h.volume, 0) / filtered.length
     : 0
 
-  // Chart: up to 16 most-recent sessions in period
   const chartSessions = filtered.slice(-16)
   const chartMax      = Math.max(...chartSessions.map(s => s.topWeight), 1)
-
-  // Recent sessions (newest first)
   const recentSessions = [...filtered].reverse().slice(0, 12)
 
   return (
     <div>
-      {/* Header */}
       <div className="screen-header">
         <button className="back-btn" onClick={onBack}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -118,19 +122,35 @@ function ExerciseProgressDetail({ exerciseName, workouts, onBack }) {
         </div>
       ) : (
         <>
-          {/* Metric tiles */}
-          <div className="metric-row">
+          {/* 4-tile PR grid */}
+          <div className="pr-grid">
             <div className="metric-tile">
               <div className="metric-value">{bestWeight}</div>
               <div className="metric-label">Best kg</div>
             </div>
             <div className="metric-tile">
-              <div className="metric-value">{totalSessions}</div>
-              <div className="metric-label">Sessions</div>
+              <div className="metric-value">{estRM}</div>
+              <div className="metric-label">Est. 1RM</div>
             </div>
             <div className="metric-tile">
-              <div className="metric-value">{fmtVol(avgVol)}</div>
-              <div className="metric-label">Avg Vol kg</div>
+              <div className="metric-value">{repPR}</div>
+              <div className="metric-label">Rep PR <span style={{ fontSize: 9, opacity: 0.7 }}>at best wt</span></div>
+            </div>
+            <div className="metric-tile">
+              <div className="metric-value">{fmtVol(volPR)}</div>
+              <div className="metric-label">Vol PR kg</div>
+            </div>
+          </div>
+
+          {/* Sessions summary */}
+          <div className="stat-row" style={{ paddingTop: 0, paddingBottom: 14 }}>
+            <div className="stat-card">
+              <div className="stat-value">{totalSessions}</div>
+              <div className="stat-label">Sessions</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{fmtVol(avgVol)}</div>
+              <div className="stat-label">Avg Vol kg</div>
             </div>
           </div>
 
@@ -184,9 +204,7 @@ function ExerciseProgressDetail({ exerciseName, workouts, onBack }) {
                       </span>
                       {isBest && <span className="pr-badge">best</span>}
                     </div>
-                    <div className="fs-12 c-dim" style={{ marginTop: 2 }}>
-                      {s.dateLabel}
-                    </div>
+                    <div className="fs-12 c-dim" style={{ marginTop: 2 }}>{s.dateLabel}</div>
                   </div>
                   <div className="c-dim fs-12">{fmtVol(s.volume)} kg vol</div>
                 </div>
@@ -205,8 +223,8 @@ function ExerciseProgressDetail({ exerciseName, workouts, onBack }) {
 
 export default function ProgressView({ workouts, bodyweights }) {
   const [selectedExercise, setSelectedExercise] = useState(null)
+  const [exSearch, setExSearch]                 = useState('')
 
-  // Exercise drill-down
   if (selectedExercise) {
     return (
       <ExerciseProgressDetail
@@ -217,24 +235,25 @@ export default function ProgressView({ workouts, bodyweights }) {
     )
   }
 
-  // ── Bodyweight summary ──────────────────────────────────────────────────────
+  // ── Bodyweight summary ─────────────────────────────────────────────────────
   const sortedBW   = [...bodyweights].sort((a, b) => b.date.localeCompare(a.date))
   const bwForChart = sortedBW.slice(0, 12).reverse()
   const bwMin      = bwForChart.length > 0 ? Math.min(...bwForChart.map(e => e.weight)) - 1 : 0
   const bwMax      = bwForChart.length > 0 ? Math.max(...bwForChart.map(e => e.weight)) + 1 : 1
   const bwRange    = bwMax - bwMin || 1
 
-  // ── Exercise list ───────────────────────────────────────────────────────────
-  const exerciseNames = getExerciseNames(workouts)
+  // ── Exercise list ──────────────────────────────────────────────────────────
+  const allExerciseNames = getExerciseNames(workouts)
+  const exerciseNames    = exSearch.trim()
+    ? allExerciseNames.filter(n => n.toLowerCase().includes(exSearch.trim().toLowerCase()))
+    : allExerciseNames
 
   const bestByEx = useMemo(() => {
     const map = {}
     workouts.forEach(w => {
       w.exercises.forEach(ex => {
         const top = getTopSet(ex)
-        if (!map[ex.name] || top.weight > map[ex.name]) {
-          map[ex.name] = top.weight
-        }
+        if (!map[ex.name] || top.weight > map[ex.name]) map[ex.name] = top.weight
       })
     })
     return map
@@ -255,7 +274,6 @@ export default function ProgressView({ workouts, bodyweights }) {
         </div>
       ) : (
         <div className="card">
-          {/* Sparkline */}
           {bwForChart.length > 1 && (
             <div className="bw-sparkline">
               {bwForChart.map((e, i) => (
@@ -271,7 +289,6 @@ export default function ProgressView({ workouts, bodyweights }) {
             </div>
           )}
 
-          {/* Latest prominent */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}>
             <span style={{ fontSize: 28, fontWeight: 700 }}>{sortedBW[0].weight}</span>
             <span className="c-dim">kg</span>
@@ -284,7 +301,6 @@ export default function ProgressView({ workouts, bodyweights }) {
             <span className="c-dim fs-12" style={{ marginLeft: 'auto' }}>{sortedBW[0].date}</span>
           </div>
 
-          {/* Recent BW rows */}
           {sortedBW.slice(0, 6).map((entry, i) => {
             const next     = sortedBW[i + 1]
             const delta    = next ? entry.weight - next.weight : null
@@ -314,16 +330,32 @@ export default function ProgressView({ workouts, bodyweights }) {
         </div>
       )}
 
-      {/* ── Exercise list (drill-down) ── */}
+      {/* ── Exercise list ── */}
       <div className="section-label" style={{ marginTop: 8 }}>Exercises</div>
 
-      {exerciseNames.length === 0 ? (
+      {allExerciseNames.length > 0 && (
+        <div className="progress-search">
+          <input
+            type="search"
+            className="input"
+            placeholder="Search exercises…"
+            value={exSearch}
+            onChange={e => setExSearch(e.target.value)}
+          />
+        </div>
+      )}
+
+      {allExerciseNames.length === 0 ? (
         <div className="card">
           <span className="c-dim fs-13">Complete a workout to see exercise progress.</span>
         </div>
+      ) : exerciseNames.length === 0 ? (
+        <div className="card" style={{ textAlign: 'center' }}>
+          <span className="c-dim fs-13">No exercises match "{exSearch}".</span>
+        </div>
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          {exerciseNames.map((name, i) => (
+          {exerciseNames.map(name => (
             <div
               key={name}
               className="prog-ex-row"

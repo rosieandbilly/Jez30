@@ -1,24 +1,22 @@
 import { useState, useMemo } from 'react'
-import { getCalendarGrid, groupByDate, calcTotalVolume, fmtVol } from '../utils'
+import { getCalendarGrid, groupByDate, calcTotalVolume, fmtVol, todayLocalKey } from '../utils'
 import WorkoutIcon from './WorkoutIcon'
 
 const DOW_HEADERS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 
-export default function CalendarView({ workouts, onSelectWorkout }) {
+export default function CalendarView({ workouts, onSelectWorkout, onLogWorkout }) {
   const today = new Date()
-  const [year, setYear] = useState(today.getFullYear())
-  const [month, setMonth] = useState(today.getMonth()) // 0-indexed
+  const [year, setYear]           = useState(today.getFullYear())
+  const [month, setMonth]         = useState(today.getMonth()) // 0-indexed
   const [selectedKey, setSelectedKey] = useState(null)
 
-  // Map of date key → workouts for fast lookup
-  const workoutsByDate = useMemo(() => groupByDate(workouts), [workouts])
+  const todayKey = todayLocalKey()
 
-  // Calendar grid cells
-  const cells = useMemo(() => getCalendarGrid(year, month), [year, month])
+  const workoutsByDate = useMemo(() => groupByDate(workouts), [workouts])
+  const cells          = useMemo(() => getCalendarGrid(year, month), [year, month])
 
   const monthLabel = new Date(year, month, 1).toLocaleDateString('en-GB', {
-    month: 'long',
-    year: 'numeric',
+    month: 'long', year: 'numeric',
   })
 
   function prevMonth() {
@@ -46,6 +44,9 @@ export default function CalendarView({ workouts, onSelectWorkout }) {
       })
     : null
 
+  // Allow logging for today or past dates (not future)
+  const canLogForDate = selectedKey && selectedKey <= todayKey
+
   return (
     <div>
       <div className="screen-header">
@@ -54,7 +55,6 @@ export default function CalendarView({ workouts, onSelectWorkout }) {
 
       {/* Calendar card */}
       <div className="card">
-        {/* Month navigation */}
         <div className="cal-month-nav">
           <button className="cal-nav-btn" onClick={prevMonth} aria-label="Previous month">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -71,13 +71,11 @@ export default function CalendarView({ workouts, onSelectWorkout }) {
           </button>
         </div>
 
-        {/* Day-of-week headers */}
         <div className="cal-grid">
           {DOW_HEADERS.map(d => (
             <div key={d} className="cal-dow">{d}</div>
           ))}
 
-          {/* Day cells */}
           {cells.map(cell => {
             const hasWorkout = cell.isCurrentMonth && !!workoutsByDate[cell.key]
             const isSelected = selectedKey === cell.key
@@ -109,7 +107,22 @@ export default function CalendarView({ workouts, onSelectWorkout }) {
           <div className="cal-detail-date">{selectedDateLabel}</div>
 
           {selectedWorkouts.length === 0 ? (
-            <div className="cal-no-workout">No workout logged</div>
+            <>
+              <div className="cal-no-workout">No workout logged</div>
+              {canLogForDate && onLogWorkout && (
+                <button
+                  className="cal-log-btn"
+                  onClick={() => onLogWorkout(selectedKey)}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  Log workout for this day
+                </button>
+              )}
+            </>
           ) : (
             selectedWorkouts.map(w => (
               <CalWorkoutRow key={w.id} workout={w} onSelect={onSelectWorkout} />
@@ -124,7 +137,7 @@ export default function CalendarView({ workouts, onSelectWorkout }) {
 }
 
 function CalWorkoutRow({ workout, onSelect }) {
-  const vol = calcTotalVolume(workout)
+  const vol  = calcTotalVolume(workout)
   const sets = workout.exercises.reduce(
     (s, ex) => s + ex.sets.filter(s => s.type !== 'warmup').length, 0
   )

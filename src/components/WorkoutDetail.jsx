@@ -1,11 +1,13 @@
+import { useState } from 'react'
 import { formatDate, formatDateShort, tagClass, getTopSet, findPrevWorkout, find3WeeksAgo, calcTotalVolume, fmtVol } from '../utils'
 
-export default function WorkoutDetail({ workout, workouts, onBack }) {
-  const prev   = findPrevWorkout(workouts, workout.template, workout.date)
+export default function WorkoutDetail({ workout, workouts, onBack, onDelete }) {
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const prev    = findPrevWorkout(workouts, workout.template, workout.date)
   const threeWk = find3WeeksAgo(workouts, workout.template, workout.date, prev?.id)
 
-  // Compute summary metrics
-  const totalVol = calcTotalVolume(workout)
+  const totalVol  = calcTotalVolume(workout)
   const topWeight = workout.exercises.reduce((max, ex) => {
     const t = getTopSet(ex)
     return t.weight > max ? t.weight : max
@@ -25,6 +27,22 @@ export default function WorkoutDetail({ workout, workouts, onBack }) {
         <span className="flex-1" />
         <span className={`tag ${tagClass(workout.template)}`}>{workout.template}</span>
         <span className="fs-13 c-dim" style={{ marginLeft: 8 }}>{formatDate(workout.date)}</span>
+        {onDelete && (
+          <button
+            className="icon-btn danger"
+            onClick={() => setConfirmDelete(true)}
+            aria-label="Delete workout"
+            style={{ marginLeft: 4 }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Metric tiles */}
@@ -72,12 +90,9 @@ export default function WorkoutDetail({ workout, workouts, onBack }) {
           <div className="card" key={i}>
             <div className="row-sb" style={{ marginBottom: 8 }}>
               <span className="exercise-name" style={{ marginBottom: 0 }}>{ex.name}</span>
-              {isNewPR && (
-                <span className="pr-badge">PR</span>
-              )}
+              {isNewPR && <span className="pr-badge">PR</span>}
             </div>
 
-            {/* Sets */}
             <div className="sets-row">
               {ex.sets.map((set, j) => (
                 <span
@@ -89,7 +104,6 @@ export default function WorkoutDetail({ workout, workouts, onBack }) {
               ))}
             </div>
 
-            {/* Comparison */}
             {(prevTop || threeTop) && (
               <div className="comparison">
                 {prevTop && (
@@ -121,6 +135,32 @@ export default function WorkoutDetail({ workout, workouts, onBack }) {
       })}
 
       <div style={{ height: 16 }} />
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(false) }}>
+          <div className="modal-sheet">
+            <div className="modal-handle" />
+            <div className="confirm-msg">Delete this workout?</div>
+            <div className="confirm-sub">
+              {workout.template} · {formatDate(workout.date)}<br />
+              This cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setConfirmDelete(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn"
+                style={{ flex: 1, background: 'var(--danger)', color: '#fff', borderRadius: 'var(--radius-sm)' }}
+                onClick={() => onDelete(workout.id)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
