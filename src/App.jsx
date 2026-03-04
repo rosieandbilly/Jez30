@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { SEED_DATA, SEED_EXERCISES, SEED_TEMPLATES } from './data/seed'
-import { getDateKey } from './utils'
+import { getDateKey, todayLocalKey } from './utils'
 import NavBar from './components/NavBar'
 import HistoryView from './components/HistoryView'
 import WorkoutDetail from './components/WorkoutDetail'
@@ -77,17 +77,29 @@ function loadData() {
   return migrate({ ...fresh, schemaVersion: 1 })
 }
 
+function loadTheme() {
+  try { return localStorage.getItem('jez30-theme') || 'light' } catch { return 'light' }
+}
+
 export default function App() {
   const [data, setData]           = useState(loadData)
   const [tab, setTab]             = useState('history')
   const [detailId, setDetailId]   = useState(null)
   const [prefillDate, setPrefillDate] = useState(null)
+  const [theme, setTheme]         = useState(loadTheme)
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-    } catch {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
   }, [data])
+
+  useEffect(() => {
+    try { localStorage.setItem('jez30-theme', theme) } catch {}
+    document.documentElement.classList.toggle('dark-mode', theme === 'dark')
+  }, [theme])
+
+  function toggleTheme() {
+    setTheme(t => t === 'dark' ? 'light' : 'dark')
+  }
 
   // ── Workout handlers ──────────────────────────────────────────────────────
 
@@ -99,6 +111,10 @@ export default function App() {
     setData(d => ({ ...d, workouts: d.workouts.filter(w => w.id !== id) }))
   }
 
+  function updateWorkout(workout) {
+    setData(d => ({ ...d, workouts: d.workouts.map(w => w.id === workout.id ? workout : w) }))
+  }
+
   function handleSaveWorkout(workout) {
     addWorkout(workout)
     setPrefillDate(null)
@@ -108,6 +124,45 @@ export default function App() {
   function handleDeleteWorkout(id) {
     deleteWorkout(id)
     setDetailId(null)
+  }
+
+  function handleUpdateWorkout(workout) {
+    updateWorkout(workout)
+    setDetailId(null)
+  }
+
+  // ── Export / Import ────────────────────────────────────────────────────────
+
+  function handleExport() {
+    const payload = { ...data, exportedAt: new Date().toISOString() }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `jez30-backup-${todayLocalKey()}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  function handleImport(parsed, mode) {
+    if (!parsed || !Array.isArray(parsed.workouts)) return
+    const migrated = migrate({ ...parsed, schemaVersion: parsed.schemaVersion || 1 })
+    if (mode === 'replace') {
+      setData(migrated)
+    } else {
+      // merge: add items not already present by id
+      setData(d => {
+        const existingWIds = new Set(d.workouts.map(w => w.id))
+        const existingBwIds = new Set(d.bodyweights.map(b => b.id))
+        return {
+          ...d,
+          workouts: [...d.workouts, ...migrated.workouts.filter(w => !existingWIds.has(w.id))],
+          bodyweights: [...d.bodyweights, ...(migrated.bodyweights || []).filter(b => !existingBwIds.has(b.id))],
+        }
+      })
+    }
   }
 
   // ── Bodyweight handlers ────────────────────────────────────────────────────
@@ -171,8 +226,10 @@ export default function App() {
           <WorkoutDetail
             workout={workout}
             workouts={data.workouts}
+            exercises={data.exercises || SEED_EXERCISES}
             onBack={handleBack}
             onDelete={handleDeleteWorkout}
+            onUpdate={handleUpdateWorkout}
           />
         </div>
       </div>
@@ -183,7 +240,14 @@ export default function App() {
     <div className="app">
       <div className="content">
         {tab === 'history' && (
-          <HistoryView workouts={sortedWorkouts} onSelect={handleSelectWorkout} />
+          <HistoryView
+            workouts={sortedWorkouts}
+            onSelect={handleSelectWorkout}
+            onExport={handleExport}
+            onImport={handleImport}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+          />
         )}
         {tab === 'calendar' && (
           <CalendarView

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   getTopSet, round2_5, generateWarmups, findPrevWorkout,
   todayLocalKey, formatDate,
@@ -81,6 +81,75 @@ function buildWorkoutFromTemplate(template, workouts) {
   })
 }
 
+// ─── Rest Timer ───────────────────────────────────────────────────────────────
+
+function RestTimer({ onClose }) {
+  const [seconds, setSeconds] = useState(null)
+  const [running, setRunning] = useState(false)
+  const intervalRef = useRef(null)
+
+  useEffect(() => {
+    if (running && seconds > 0) {
+      intervalRef.current = setInterval(() => setSeconds(s => s - 1), 1000)
+    } else {
+      clearInterval(intervalRef.current)
+      if (running && seconds === 0) {
+        try { navigator.vibrate([200, 100, 200]) } catch {}
+        setRunning(false)
+      }
+    }
+    return () => clearInterval(intervalRef.current)
+  }, [running, seconds])
+
+  function start(s) { setSeconds(s); setRunning(true) }
+  function reset()  { setSeconds(null); setRunning(false); clearInterval(intervalRef.current) }
+
+  function fmt(s) {
+    if (s === null) return ''
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="modal-sheet">
+        <div className="modal-handle" />
+        <div className="modal-title">Rest Timer</div>
+
+        {seconds !== null ? (
+          <div style={{ textAlign: 'center' }}>
+            <div className={`timer-display${seconds === 0 ? ' timer-done' : ''}`}>
+              {seconds === 0 ? 'Done!' : fmt(seconds)}
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 8 }}>
+              {seconds > 0 && (
+                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setRunning(r => !r)}>
+                  {running ? 'Pause' : 'Resume'}
+                </button>
+              )}
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={reset}>Reset</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="c-dim fs-13" style={{ textAlign: 'center', marginBottom: 14 }}>
+              Quick start
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {[60, 90, 120].map(s => (
+                <button key={s} className="btn btn-secondary" style={{ flex: 1 }} onClick={() => start(s)}>
+                  {s}s
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        <button className="btn btn-secondary" style={{ marginTop: 14 }} onClick={onClose}>Close</button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Workout Builder ──────────────────────────────────────────────────────────
 
 function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
@@ -89,12 +158,13 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
   const [exercises, setExercises]     = useState(() =>
     buildWorkoutFromTemplate(template, workouts).map(ex => ({
       ...ex,
-      sets: ex.sets.map(s => ({ ...s, weight: String(s.weight), reps: String(s.reps) })),
+      sets: ex.sets.map(s => ({ ...s, weight: String(s.weight), reps: String(s.reps), done: false })),
     }))
   )
+  const [notes, setNotes]       = useState('')
   const [saveError, setSaveError] = useState('')
+  const [showTimer, setShowTimer] = useState(false)
 
-  // Update exercises when prefillDate changes (e.g. user navigated away and back)
   useEffect(() => {
     if (prefillDate) setWorkoutDate(prefillDate)
   }, [prefillDate])
@@ -125,6 +195,13 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
     setSaveError('')
   }, [])
 
+  const toggleDone = useCallback((exIdx, setIdx) => {
+    setExercises(prev => prev.map((ex, i) => {
+      if (i !== exIdx) return ex
+      return { ...ex, sets: ex.sets.map((s, j) => j !== setIdx ? s : { ...s, done: !s.done }) }
+    }))
+  }, [])
+
   function handleSave() {
     for (const ex of exercises) {
       for (const set of ex.sets) {
@@ -146,6 +223,7 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
       date: workoutDate + 'T12:00:00',
       localDateKey: workoutDate,
       template: template.name,
+      notes: notes.trim(),
       exercises: exercises.map(ex => ({
         ...ex,
         sets: ex.sets.map(s => ({
@@ -187,10 +265,21 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
         </div>
       </div>
 
+      {/* Notes field */}
+      <div style={{ padding: '0 16px 12px' }}>
+        <label className="form-label">Notes (optional)</label>
+        <textarea
+          className="notes-field"
+          placeholder="How did this session feel? Any PRs, form cues, etc."
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+        />
+      </div>
+
       {last && (
         <div style={{ padding: '0 16px 12px' }}>
           <div className="info-box">
-            Based on {formatDate(last.date)} session. Progression applied per exercise. Tap any number to edit.
+            Based on {formatDate(last.date)} session. Tap ✓ to mark sets done. Tap numbers to edit.
           </div>
         </div>
       )}
@@ -218,13 +307,26 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
             {ex.sets.map((set, setIdx) => (
               <div
                 key={setIdx}
-                className={`set-edit-row${set.type === 'top' ? ' is-top' : set.type === 'warmup' ? ' is-warmup' : ''}`}
+                className={`set-edit-row${set.type === 'top' ? ' is-top' : set.type === 'warmup' ? ' is-warmup' : ''}${set.done ? ' set-row-done' : ''}`}
               >
+                {/* Completion toggle */}
+                <button
+                  className={`complete-btn${set.done ? ' done' : ''}`}
+                  onClick={() => toggleDone(exIdx, setIdx)}
+                  aria-label={set.done ? 'Mark undone' : 'Mark done'}
+                >
+                  {set.done && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                      stroke="white" strokeWidth="3" strokeLinecap="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+
                 <span className="set-type-badge">
                   {set.type === 'top' ? 'TOP' : set.type === 'warmup' ? 'WU' : ''}
                 </span>
 
-                {/* Weight stepper */}
                 <button className="step-btn" onClick={() => stepSet(exIdx, setIdx, 'weight', -2.5)}>−</button>
                 <input
                   type="number"
@@ -240,7 +342,6 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
 
                 <span className="set-unit" style={{ color: 'var(--border)', margin: '0 2px' }}>×</span>
 
-                {/* Reps stepper */}
                 <button className="step-btn" onClick={() => stepSet(exIdx, setIdx, 'reps', -1)}>−</button>
                 <input
                   type="number"
@@ -261,11 +362,24 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
 
       {saveError && <div className="save-error">{saveError}</div>}
 
-      <div style={{ padding: '4px 16px 20px' }}>
-        <button className="btn btn-primary" onClick={handleSave}>
+      {/* Spacer so sticky bar doesn't cover last card */}
+      <div style={{ height: 80 }} />
+
+      {/* Sticky gym action bar */}
+      <div className="gym-action-bar">
+        <button
+          className="btn btn-secondary"
+          style={{ width: 'auto', padding: '0 18px' }}
+          onClick={() => setShowTimer(true)}
+        >
+          ⏱ Rest
+        </button>
+        <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave}>
           Save Workout
         </button>
       </div>
+
+      {showTimer && <RestTimer onClose={() => setShowTimer(false)} />}
     </div>
   )
 }
