@@ -1559,3 +1559,322 @@ body {
 }
 .theme-toggle:active { opacity: 0.7; }
 
+
+/* ══════════════════════════════════════════════════════
+   PERSONALIZATION — Celebration, Mascot, Recap, Toasts
+   ══════════════════════════════════════════════════════ */
+
+/* ── Celebration Modal ── */
+
+.celebOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 9998;
+  padding: 20px;
+}
+
+.celebConfettiCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.celebCard {
+  position: relative;
+  z-index: 10000;
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border-radius: 22px;
+  padding: 20px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+}
+
+.celebTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.celebTitle {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
+.celebCloseBtn {
+  border: none;
+  background: var(--surface2);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.celebCloseBtn:active { transform: scale(0.92); }
+
+.celebSpeech {
+  background: var(--surface2);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.celebSpeechWho {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.celebSpeechQuote {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.celebPbList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.celebPbItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--primary-soft);
+  border-radius: 12px;
+}
+
+.celebPbLabel {
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.celebPbValue {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--primary);
+}
+
+.celebActionBtn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--primary);
+  color: white;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: -0.3px;
+}
+.celebActionBtn:active { opacity: 0.85; transform: scale(0.98); }
+
+/* ── Achievement Toast ── */
+
+.achToast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--navbar-h) + env(safe-area-inset-bottom, 0px) + 12px);
+  width: min(92vw, 380px);
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+  z-index: 9997;
+  border-left: 4px solid var(--warning);
+  animation: achSlideUp 0.3s ease;
+}
+
+@keyframes achSlideUp {
+  from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+}
+
+.achToastTop {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--warning-text);
+  margin-bottom: 4px;
+}
+
+.achToastBody {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* ── Weekly Recap Card ── */
+
+.recapCard {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 16px;
+  margin: 0 16px 14px;
+  box-shadow: var(--shadow);
+  border-left: 4px solid var(--primary);
+}
+
+.recapHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.recapTitle {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: -0.3px;
+}
+
+.recapDismissBtn {
+  border: none;
+  background: var(--surface2);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.recapDismissBtn:active { opacity: 0.7; }
+
+.recapMain {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.recapInsights {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.recapInsightRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.recapInsightLabel {
+  color: var(--text-dim);
+}
+
+.recapInsightValue {
+  font-weight: 800;
+  color: var(--text);
+  text-align: right;
+}
+
+.recapFooter {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--primary);
+}
+
+/* ── Mascot Billy ── */
+
+.billyWrap {
+  position: fixed;
+  right: 12px;
+  bottom: calc(var(--navbar-h) + env(safe-area-inset-bottom, 0px) + 10px);
+  z-index: 9996;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.billyBubble {
+  background: rgba(0, 0, 0, 0.82);
+  color: white;
+  padding: 8px 11px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  max-width: 200px;
+  line-height: 1.35;
+  border-bottom-right-radius: 3px;
+  animation: billyPop 0.2s ease;
+}
+
+@keyframes billyPop {
+  from { transform: scale(0.8); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.billyBody {
+  width: 58px;
+  height: 58px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: default;
+}
+
+.billyLevel {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-dim);
+  letter-spacing: 0.03em;
+  margin-top: -2px;
+}
+
+.billySvg {
+  width: 44px;
+  height: 44px;
+}
+
+/* Mood animations */
+.billyBody.billy-mood-berserk {
+  animation: billyShake 0.1s infinite;
+}
+.billyBody.billy-mood-sad {
+  filter: grayscale(0.4);
+}
+
+@keyframes billyShake {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  25%  { transform: translate(1.5px, -1px) rotate(-2deg); }
+  50%  { transform: translate(-1.5px, 1px) rotate(2deg); }
+  75%  { transform: translate(1.5px, 1px) rotate(0deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
