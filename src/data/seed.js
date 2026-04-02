@@ -1,224 +1,312 @@
-/**
- * Workout templates with default weights/reps and whether to include back-off sets.
- * Kept for backward compatibility; CreateView uses SEED_TEMPLATES instead.
- */
-export const TEMPLATES = {
-  'Upper A': [
-    { name: 'Barbell Bench Press', defaultWeight: 60, defaultReps: 5, backoff: true },
-    { name: 'Barbell Row',         defaultWeight: 60, defaultReps: 5, backoff: true },
-    { name: 'Overhead Press',      defaultWeight: 40, defaultReps: 5, backoff: true },
-    { name: 'Lat Pulldown',        defaultWeight: 50, defaultReps: 8, backoff: true },
-    { name: 'Barbell Curl',        defaultWeight: 25, defaultReps: 10, backoff: false },
-  ],
-  'Lower A': [
-    { name: 'Squat',               defaultWeight: 80, defaultReps: 5, backoff: true },
-    { name: 'Romanian Deadlift',   defaultWeight: 70, defaultReps: 6, backoff: true },
-    { name: 'Leg Press',           defaultWeight: 120, defaultReps: 10, backoff: true },
-    { name: 'Leg Curl',            defaultWeight: 40, defaultReps: 10, backoff: false },
-    { name: 'Calf Raise',          defaultWeight: 60, defaultReps: 15, backoff: false },
-  ],
-  'Push': [
-    { name: 'Overhead Press',      defaultWeight: 40, defaultReps: 5, backoff: true },
-    { name: 'Incline Bench Press', defaultWeight: 55, defaultReps: 6, backoff: true },
-    { name: 'Lateral Raise',       defaultWeight: 10, defaultReps: 12, backoff: false },
-    { name: 'Tricep Pushdown',     defaultWeight: 30, defaultReps: 12, backoff: false },
-    { name: 'Cable Fly',           defaultWeight: 12.5, defaultReps: 12, backoff: false },
-  ],
-}
-
 // ─── Exercise Library Seed ────────────────────────────────────────────────────
-// Each exercise has: id, name, bodyArea, notes
-// bodyArea: 'Upper Body' | 'Lower Body' | 'Core' | 'Full Body'
 
 export const SEED_EXERCISES = [
-  { id: 'ex-01', name: 'Barbell Bench Press', bodyArea: 'Upper Body', notes: '' },
-  { id: 'ex-02', name: 'Barbell Row',         bodyArea: 'Upper Body', notes: '' },
-  { id: 'ex-03', name: 'Overhead Press',      bodyArea: 'Upper Body', notes: '' },
-  { id: 'ex-04', name: 'Lat Pulldown',        bodyArea: 'Upper Body', notes: '' },
-  { id: 'ex-05', name: 'Barbell Curl',        bodyArea: 'Upper Body', notes: '' },
-  { id: 'ex-06', name: 'Incline Bench Press', bodyArea: 'Upper Body', notes: '' },
-  { id: 'ex-07', name: 'Lateral Raise',       bodyArea: 'Upper Body', notes: '' },
-  { id: 'ex-08', name: 'Tricep Pushdown',     bodyArea: 'Upper Body', notes: '' },
-  { id: 'ex-09', name: 'Cable Fly',           bodyArea: 'Upper Body', notes: '' },
-  { id: 'ex-10', name: 'Squat',               bodyArea: 'Lower Body', notes: '' },
-  { id: 'ex-11', name: 'Romanian Deadlift',   bodyArea: 'Lower Body', notes: '' },
-  { id: 'ex-12', name: 'Leg Press',           bodyArea: 'Lower Body', notes: '' },
-  { id: 'ex-13', name: 'Leg Curl',            bodyArea: 'Lower Body', notes: '' },
-  { id: 'ex-14', name: 'Calf Raise',          bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-01', name: 'Leg Extension',                      bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-02', name: 'ISO Leg Extension',                  bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-03', name: 'Leg Curl',                           bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-04', name: 'Prone Leg Curl',                     bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-05', name: 'ISO Leg Curl',                       bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-06', name: 'ISO Step on Box',                    bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-07', name: 'Yogi Goblet Squats',                 bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-08', name: 'Narrow Tilt Goblet Squats',          bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-09', name: 'Squats',                             bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-10', name: 'Squat to Bench',                     bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-11', name: 'Sumo Squats',                        bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-12', name: 'Front Squats',                       bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-13', name: 'Smith Squats',                       bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-14', name: 'Sumo Smith Squats',                  bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-15', name: 'Front Smith Squats',                 bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-16', name: 'Front Dumbbell Squats',              bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-17', name: 'Leg Press',                          bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-18', name: 'Narrow Leg Press',                   bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-19', name: 'Single Leg Press',                   bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-20', name: 'Kossack Squats',                     bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-21', name: 'Bulgarian Lunges',                   bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-22', name: 'Forward Lunges',                     bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-23', name: 'Alt Forward Back Lunges',            bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-24', name: 'Smith Back Lunges',                  bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-25', name: 'Pistol Squats',                      bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-26', name: 'On Bench Pistol Squat',              bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-27', name: 'Pelvic Thrusts',                     bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-28', name: 'Straight Leg Deadlifts',             bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-29', name: 'Calf Extension Machine',             bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-30', name: 'ISO Calf Extension Machine',         bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-31', name: 'Hip Adduction',                      bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-l-32', name: 'Hip Abduction',                      bodyArea: 'Lower Body', notes: '' },
+  { id: 'ex-p-01', name: 'Incline Dumbbell Press',             bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-02', name: 'Incline Bench Press',                bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-03', name: 'Bench Press',                        bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-04', name: 'Press Machine',                      bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-05', name: 'Dumbbell Press',                     bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-06', name: 'Dumbbell Flies',                     bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-07', name: 'Incline Dumbbell Flies',             bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-08', name: 'Standing Dumbbell Flies',            bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-09', name: 'Peck Deck',                          bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-10', name: 'Cable Flies',                        bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-11', name: 'Upward Cable Flies',                 bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-12', name: 'ISO Upward Cable Flies',             bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-13', name: 'Dumbbell Pullovers',                 bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-14', name: 'Plate Front Extension',              bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-15', name: 'Weighted Dips',                      bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-16', name: 'Bent Over Tricep Extension',         bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-17', name: 'Cable Tricep Extension',             bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-18', name: 'Rope Tricep Pulldowns',              bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-19', name: 'Cable Tricep Pullovers',             bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-20', name: 'Skull Crushers',                     bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-21', name: 'Narrow Bench Press',                 bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-22', name: 'Narrow Dumbbell Press',              bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-p-23', name: 'Two Hand Behind Head Dumbbell Press',bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-01', name: 'Backwards Sit-Ups',                  bodyArea: 'Core',       notes: '' },
+  { id: 'ex-r-02', name: 'Lat Pulldown Machine',               bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-03', name: 'ISO Lat Pulldown Machine',           bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-04', name: 'ISO Cable Lat Pulldowns',            bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-05', name: 'Behind Head Lat Cable Pulldowns',    bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-06', name: 'Bent Over Crucifixes',               bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-07', name: 'Decline Bench Reverse Flies',        bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-08', name: 'Seated Row',                         bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-09', name: 'ISO Seated Row',                     bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-10', name: 'High Seated Row',                    bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-11', name: 'Deadlift',                           bodyArea: 'Full Body',  notes: '' },
+  { id: 'ex-r-12', name: 'PROM Deadlift',                      bodyArea: 'Full Body',  notes: '' },
+  { id: 'ex-r-13', name: 'Box Deadlift',                       bodyArea: 'Full Body',  notes: '' },
+  { id: 'ex-r-14', name: 'Bent Over ISO Rows',                 bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-15', name: 'Bent Over Smith Row',                bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-16', name: 'Bent Over Barbell Row',              bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-17', name: 'Reverse Cable Flies',                bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-18', name: 'Reverse Peck Deck',                  bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-19', name: 'Reverse Peck Deck High',             bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-20', name: 'TRX Rows',                           bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-21', name: 'Seated Cable Rows',                  bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-22', name: 'ISO Seated Cable Rows',              bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-23', name: 'ISO Standing Cable Rows',            bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-24', name: 'Standing Cable Rows',                bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-25', name: 'Seated Decline Dumbbell Curls',      bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-26', name: 'Beyond Vertical Cable Curls',        bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-27', name: 'Cable Curls',                        bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-28', name: 'ISO Slow Curls',                     bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-29', name: 'Preacher Curls Z Bar',               bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-30', name: 'ISO Dumbbell Preachers',             bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-31', name: 'Heavy Hammers',                      bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-32', name: 'Drag Curls',                         bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-33', name: 'Barbell Curls',                      bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-r-34', name: 'Seated Barbell Curls',               bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-01', name: 'Crucifixes',                         bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-02', name: 'Cable ISO Crucifixes',               bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-03', name: 'Decline Bench ISO Crucifixes',       bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-04', name: 'Shoulder Press',                     bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-05', name: 'Arnold Press',                       bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-06', name: 'Shoulder Press Machine',             bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-07', name: 'Palms In Shoulder Press Machine',    bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-08', name: 'ISO Palms In Shoulder Press Machine',bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-09', name: 'Military Press',                     bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-10', name: 'Dumbbell Shrugs',                    bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-11', name: 'Reverse Peck Deck Low',              bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-12', name: 'Decline Bench Rear Delt Crucifixes', bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-13', name: 'Decline Bench Shrugs',               bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-14', name: 'Cable Rope to Eyes',                 bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-15', name: 'Front Barbell Raises',               bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-16', name: 'Front Plate Raises',                 bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-17', name: 'Front Dumbbell Raises',              bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-s-18', name: 'Alt Front Side Dumbbell Raises',     bodyArea: 'Upper Body', notes: '' },
+  { id: 'ex-a-01', name: 'Hanging Leg Ups',                    bodyArea: 'Core',       notes: '' },
+  { id: 'ex-a-02', name: 'Jackknives',                         bodyArea: 'Core',       notes: '' },
+  { id: 'ex-a-03', name: 'Scorpion Crunches',                  bodyArea: 'Core',       notes: '' },
+  { id: 'ex-a-04', name: 'Sit-Ups',                            bodyArea: 'Core',       notes: '' },
+  { id: 'ex-a-05', name: 'Partial Sit-Ups',                    bodyArea: 'Core',       notes: '' },
+  { id: 'ex-a-06', name: 'Side Foot Touches',                  bodyArea: 'Core',       notes: '' },
+  { id: 'ex-a-07', name: 'Leg Scissors',                       bodyArea: 'Core',       notes: '' },
+  { id: 'ex-a-08', name: 'Cable Crunches',                     bodyArea: 'Core',       notes: '' },
+  { id: 'ex-a-09', name: 'Side Kettlebell Raises',             bodyArea: 'Core',       notes: '' },
+  { id: 'ex-a-10', name: 'Exercise Ball Crunches',             bodyArea: 'Core',       notes: '' },
+  { id: 'ex-a-11', name: 'Cable Lumberjacks',                  bodyArea: 'Core',       notes: '' },
+  { id: 'ex-a-12', name: 'Side Plank Crunches on Bench',       bodyArea: 'Core',       notes: '' },
 ]
 
 // ─── Workout Template Seed ────────────────────────────────────────────────────
-// Each template has: id, name, exercises[{name, defaultWeight, defaultReps, backoff}]
 
 export const SEED_TEMPLATES = [
   {
-    id: 'tpl-01',
-    name: 'Upper A',
+    id: 'tpl-legs',
+    name: 'Legs',
     exercises: [
-      { name: 'Barbell Bench Press', defaultWeight: 60,   defaultReps: 5,  backoff: true  },
-      { name: 'Barbell Row',         defaultWeight: 60,   defaultReps: 5,  backoff: true  },
-      { name: 'Overhead Press',      defaultWeight: 40,   defaultReps: 5,  backoff: true  },
-      { name: 'Lat Pulldown',        defaultWeight: 50,   defaultReps: 8,  backoff: true  },
-      { name: 'Barbell Curl',        defaultWeight: 25,   defaultReps: 10, backoff: false },
+      { name: 'Leg Extension',    defaultWeight: 80,  defaultReps: 10, backoff: false },
+      { name: 'Leg Curl',         defaultWeight: 75,  defaultReps: 8,  backoff: false },
+      { name: 'Squats',           defaultWeight: 90,  defaultReps: 6,  backoff: false },
+      { name: 'Leg Press',        defaultWeight: 230, defaultReps: 6,  backoff: false },
+      { name: 'Bulgarian Lunges', defaultWeight: 16,  defaultReps: 10, backoff: false },
+      { name: 'Pelvic Thrusts',   defaultWeight: 80,  defaultReps: 8,  backoff: false },
+      { name: 'Hip Adduction',    defaultWeight: 77,  defaultReps: 10, backoff: false },
+      { name: 'Hip Abduction',    defaultWeight: 77,  defaultReps: 10, backoff: false },
     ],
   },
   {
-    id: 'tpl-02',
-    name: 'Lower A',
-    exercises: [
-      { name: 'Squat',               defaultWeight: 80,   defaultReps: 5,  backoff: true  },
-      { name: 'Romanian Deadlift',   defaultWeight: 70,   defaultReps: 6,  backoff: true  },
-      { name: 'Leg Press',           defaultWeight: 120,  defaultReps: 10, backoff: true  },
-      { name: 'Leg Curl',            defaultWeight: 40,   defaultReps: 10, backoff: false },
-      { name: 'Calf Raise',          defaultWeight: 60,   defaultReps: 15, backoff: false },
-    ],
-  },
-  {
-    id: 'tpl-03',
+    id: 'tpl-push',
     name: 'Push',
     exercises: [
-      { name: 'Overhead Press',      defaultWeight: 40,   defaultReps: 5,  backoff: true  },
-      { name: 'Incline Bench Press', defaultWeight: 55,   defaultReps: 6,  backoff: true  },
-      { name: 'Lateral Raise',       defaultWeight: 10,   defaultReps: 12, backoff: false },
-      { name: 'Tricep Pushdown',     defaultWeight: 30,   defaultReps: 12, backoff: false },
-      { name: 'Cable Fly',           defaultWeight: 12.5, defaultReps: 12, backoff: false },
+      { name: 'Bench Press',            defaultWeight: 70, defaultReps: 5,  backoff: false },
+      { name: 'Incline Dumbbell Press', defaultWeight: 25, defaultReps: 6,  backoff: false },
+      { name: 'Peck Deck',              defaultWeight: 53, defaultReps: 8,  backoff: false },
+      { name: 'Rope Tricep Pulldowns',  defaultWeight: 26, defaultReps: 10, backoff: false },
+      { name: 'Skull Crushers',         defaultWeight: 25, defaultReps: 8,  backoff: false },
+    ],
+  },
+  {
+    id: 'tpl-pull',
+    name: 'Pull',
+    exercises: [
+      { name: 'Deadlift',               defaultWeight: 80, defaultReps: 10, backoff: false },
+      { name: 'Bent Over Barbell Row',  defaultWeight: 75, defaultReps: 5,  backoff: false },
+      { name: 'Seated Row',             defaultWeight: 87, defaultReps: 6,  backoff: false },
+      { name: 'ISO Lat Pulldown Machine',defaultWeight: 80, defaultReps: 6, backoff: false },
+      { name: 'Cable Curls',            defaultWeight: 22, defaultReps: 6,  backoff: false },
+      { name: 'Barbell Curls',          defaultWeight: 25, defaultReps: 8,  backoff: false },
+    ],
+  },
+  {
+    id: 'tpl-shoulders',
+    name: 'Shoulders',
+    exercises: [
+      { name: 'Military Press',       defaultWeight: 50, defaultReps: 8,  backoff: false },
+      { name: 'Arnold Press',         defaultWeight: 20, defaultReps: 6,  backoff: false },
+      { name: 'Dumbbell Shrugs',      defaultWeight: 28, defaultReps: 10, backoff: false },
+      { name: 'Crucifixes',           defaultWeight: 12, defaultReps: 10, backoff: false },
+      { name: 'Front Dumbbell Raises',defaultWeight: 9,  defaultReps: 8,  backoff: false },
+    ],
+  },
+  {
+    id: 'tpl-abs',
+    name: 'Abs',
+    exercises: [
+      { name: 'Cable Crunches',       defaultWeight: 40, defaultReps: 20, backoff: false },
+      { name: 'Side Kettlebell Raises',defaultWeight: 28, defaultReps: 12, backoff: false },
+      { name: 'Cable Lumberjacks',    defaultWeight: 20, defaultReps: 10, backoff: false },
+      { name: 'Hanging Leg Ups',      defaultWeight: 0,  defaultReps: 20, backoff: false },
+      { name: 'Jackknives',           defaultWeight: 0,  defaultReps: 20, backoff: false },
     ],
   },
 ]
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function r(w) {
-  return Math.round(w / 2.5) * 2.5
-}
-
-function makeExercise(name, topW, topR, backoffW = null, backoffR = 8) {
-  const sets = []
-  if (topW > 20) {
-    sets.push({ weight: Math.max(20, r(topW * 0.4)), reps: 10, type: 'warmup' })
-    sets.push({ weight: r(topW * 0.65), reps: 5, type: 'warmup' })
-    sets.push({ weight: r(topW * 0.82), reps: 3, type: 'warmup' })
-  }
-  sets.push({ weight: topW, reps: topR, type: 'top' })
-  if (backoffW) {
-    sets.push({ weight: backoffW, reps: backoffR, type: 'working' })
-    sets.push({ weight: backoffW, reps: backoffR, type: 'working' })
-    sets.push({ weight: backoffW, reps: backoffR, type: 'working' })
-  }
-  return { name, sets }
-}
-
-function makeWorkout(id, date, template, exercises) {
-  return { id, date, template, exercises }
-}
-
-// ─── Seed Data ───────────────────────────────────────────────────────────────
-//
-// Schedule (today = 2026-02-24):
-//   2026-02-03  Upper A   (≈3 weeks ago)
-//   2026-02-05  Lower A
-//   2026-02-07  Push
-//   2026-02-10  Upper A
-//   2026-02-12  Lower A
-//   2026-02-14  Push
-//   2026-02-17  Upper A
-//   2026-02-19  Lower A
-//   2026-02-21  Push
-//
-// Weights increase by 2.5 kg per Upper A cycle, ~2–3 kg elsewhere.
+// ─── Seed Data ────────────────────────────────────────────────────────────────
 
 export const SEED_DATA = {
   workouts: [
-    // ── 2026-02-03  Upper A ──────────────────────────────────
-    makeWorkout('w1', '2026-02-03T09:30:00', 'Upper A', [
-      makeExercise('Barbell Bench Press', 80,   3, 65,  8),
-      makeExercise('Barbell Row',         70,   5, 57.5,8),
-      makeExercise('Overhead Press',      52.5, 3, 42.5,8),
-      makeExercise('Lat Pulldown',        65,   8, 52.5,10),
-      makeExercise('Barbell Curl',        32.5,10),
-    ]),
-
-    // ── 2026-02-05  Lower A ──────────────────────────────────
-    makeWorkout('w2', '2026-02-05T10:00:00', 'Lower A', [
-      makeExercise('Squat',             100,  3, 80,  8),
-      makeExercise('Romanian Deadlift',  80,  6, 65,  8),
-      makeExercise('Leg Press',         140, 10,120, 12),
-      makeExercise('Leg Curl',           45, 10),
-      makeExercise('Calf Raise',         80, 15),
-    ]),
-
-    // ── 2026-02-07  Push ─────────────────────────────────────
-    makeWorkout('w3', '2026-02-07T09:00:00', 'Push', [
-      makeExercise('Overhead Press',      55, 3, 45,  8),
-      makeExercise('Incline Bench Press', 65, 6, 52.5,8),
-      makeExercise('Lateral Raise',       12,12),
-      makeExercise('Tricep Pushdown',     35,12),
-      makeExercise('Cable Fly',           15,12),
-    ]),
-
-    // ── 2026-02-10  Upper A ──────────────────────────────────
-    makeWorkout('w4', '2026-02-10T09:30:00', 'Upper A', [
-      makeExercise('Barbell Bench Press', 82.5, 3, 67.5,8),
-      makeExercise('Barbell Row',         72.5, 5, 60,  8),
-      makeExercise('Overhead Press',      55,   3, 45,  8),
-      makeExercise('Lat Pulldown',        67.5, 8, 55,  10),
-      makeExercise('Barbell Curl',        35,  10),
-    ]),
-
-    // ── 2026-02-12  Lower A ──────────────────────────────────
-    makeWorkout('w5', '2026-02-12T10:00:00', 'Lower A', [
-      makeExercise('Squat',             102.5, 3, 82.5,8),
-      makeExercise('Romanian Deadlift',  82.5, 6, 67.5,8),
-      makeExercise('Leg Press',         142.5,10,122.5,12),
-      makeExercise('Leg Curl',           47.5,10),
-      makeExercise('Calf Raise',         82.5,15),
-    ]),
-
-    // ── 2026-02-14  Push ─────────────────────────────────────
-    makeWorkout('w6', '2026-02-14T09:00:00', 'Push', [
-      makeExercise('Overhead Press',      57.5,3, 47.5,8),
-      makeExercise('Incline Bench Press', 67.5,6, 55,  8),
-      makeExercise('Lateral Raise',       14, 12),
-      makeExercise('Tricep Pushdown',     37.5,12),
-      makeExercise('Cable Fly',           17.5,12),
-    ]),
-
-    // ── 2026-02-17  Upper A ──────────────────────────────────
-    makeWorkout('w7', '2026-02-17T09:30:00', 'Upper A', [
-      makeExercise('Barbell Bench Press', 85,   3, 70,  8),
-      makeExercise('Barbell Row',         75,   5, 62.5,8),
-      makeExercise('Overhead Press',      57.5, 3, 47.5,8),
-      makeExercise('Lat Pulldown',        70,   8, 57.5,10),
-      makeExercise('Barbell Curl',        37.5,10),
-    ]),
-
-    // ── 2026-02-19  Lower A ──────────────────────────────────
-    makeWorkout('w8', '2026-02-19T10:00:00', 'Lower A', [
-      makeExercise('Squat',             105,  3, 85,  8),
-      makeExercise('Romanian Deadlift',  85,  6, 70,  8),
-      makeExercise('Leg Press',         145, 10,125, 12),
-      makeExercise('Leg Curl',           50, 10),
-      makeExercise('Calf Raise',         85, 15),
-    ]),
-
-    // ── 2026-02-21  Push ─────────────────────────────────────
-    makeWorkout('w9', '2026-02-21T09:00:00', 'Push', [
-      makeExercise('Overhead Press',      60, 3, 50,  8),
-      makeExercise('Incline Bench Press', 70, 6, 57.5,8),
-      makeExercise('Lateral Raise',       16,12),
-      makeExercise('Tricep Pushdown',     40,12),
-      makeExercise('Cable Fly',           20,12),
-    ]),
+    {
+      id: 'w-legs-1',
+      date: '2025-12-01T09:00:00',
+      localDateKey: '2025-12-01',
+      template: 'Legs',
+      notes: 'Imported session A',
+      exercises: [
+        { name: 'Leg Extension',          sets: [{ weight: 42,  reps: 16, type: 'working' }, { weight: 72,  reps: 12, type: 'working' }, { weight: 80,  reps: 10, type: 'top' }] },
+        { name: 'ISO Leg Extension',      sets: [{ weight: 35,  reps: 8,  type: 'working' }, { weight: 42,  reps: 6,  type: 'top' }] },
+        { name: 'Leg Curl',               sets: [{ weight: 50,  reps: 20, type: 'working' }, { weight: 75,  reps: 8,  type: 'top' }] },
+        { name: 'Prone Leg Curl',         sets: [{ weight: 50,  reps: 8,  type: 'working' }, { weight: 55,  reps: 5,  type: 'top' }] },
+        { name: 'ISO Leg Curl',           sets: [{ weight: 42,  reps: 6,  type: 'top' }] },
+        { name: 'Yogi Goblet Squats',     sets: [{ weight: 20,  reps: 18, type: 'working' }, { weight: 26,  reps: 15, type: 'top' }] },
+        { name: 'Narrow Tilt Goblet Squats', sets: [{ weight: 16, reps: 20, type: 'working' }, { weight: 22, reps: 16, type: 'top' }] },
+        { name: 'Squats',                 sets: [{ weight: 90,  reps: 6,  type: 'top' }] },
+        { name: 'Squat to Bench',         sets: [{ weight: 80,  reps: 8,  type: 'working' }, { weight: 85,  reps: 6,  type: 'top' }] },
+        { name: 'Sumo Squats',            sets: [{ weight: 70,  reps: 15, type: 'working' }, { weight: 90,  reps: 8,  type: 'top' }] },
+        { name: 'Front Squats',           sets: [{ weight: 50,  reps: 16, type: 'working' }, { weight: 60,  reps: 8,  type: 'top' }] },
+        { name: 'Front Dumbbell Squats',  sets: [{ weight: 20,  reps: 12, type: 'working' }, { weight: 22,  reps: 8,  type: 'top' }] },
+        { name: 'Leg Press',              sets: [{ weight: 170, reps: 17, type: 'working' }, { weight: 230, reps: 6,  type: 'top' }] },
+        { name: 'Narrow Leg Press',       sets: [{ weight: 190, reps: 16, type: 'working' }, { weight: 210, reps: 8,  type: 'top' }] },
+        { name: 'Single Leg Press',       sets: [{ weight: 120, reps: 8,  type: 'top' }] },
+        { name: 'Bulgarian Lunges',       sets: [{ weight: 12,  reps: 15, type: 'working' }, { weight: 16,  reps: 10, type: 'top' }] },
+        { name: 'Pelvic Thrusts',         sets: [{ weight: 45,  reps: 15, type: 'working' }, { weight: 80,  reps: 8,  type: 'top' }] },
+        { name: 'Straight Leg Deadlifts', sets: [{ weight: 70,  reps: 8,  type: 'top' }] },
+        { name: 'Calf Extension Machine', sets: [{ weight: 57,  reps: 12, type: 'working' }, { weight: 65,  reps: 8,  type: 'top' }] },
+        { name: 'ISO Calf Extension Machine', sets: [{ weight: 30, reps: 8, type: 'top' }] },
+        { name: 'Hip Adduction',          sets: [{ weight: 65,  reps: 20, type: 'working' }, { weight: 77,  reps: 10, type: 'top' }] },
+        { name: 'Hip Abduction',          sets: [{ weight: 65,  reps: 20, type: 'working' }, { weight: 77,  reps: 10, type: 'top' }] },
+      ],
+    },
+    {
+      id: 'w-push-1',
+      date: '2025-12-01T09:00:00',
+      localDateKey: '2025-12-01',
+      template: 'Push',
+      notes: 'Imported session A',
+      exercises: [
+        { name: 'Incline Dumbbell Press',            sets: [{ weight: 18, reps: 16, type: 'working' }, { weight: 25, reps: 6,  type: 'top' }] },
+        { name: 'Incline Bench Press',               sets: [{ weight: 60, reps: 5,  type: 'top' }] },
+        { name: 'Bench Press',                       sets: [{ weight: 50, reps: 12, type: 'working' }, { weight: 60, reps: 8,  type: 'working' }, { weight: 70, reps: 5, type: 'top' }] },
+        { name: 'Press Machine',                     sets: [{ weight: 30, reps: 15, type: 'working' }, { weight: 57, reps: 6,  type: 'top' }] },
+        { name: 'Dumbbell Press',                    sets: [{ weight: 22, reps: 12, type: 'working' }, { weight: 28, reps: 6,  type: 'top' }] },
+        { name: 'Dumbbell Flies',                    sets: [{ weight: 12, reps: 8,  type: 'top' }] },
+        { name: 'Incline Dumbbell Flies',            sets: [{ weight: 10, reps: 14, type: 'working' }, { weight: 12, reps: 12, type: 'top' }] },
+        { name: 'Peck Deck',                         sets: [{ weight: 35, reps: 15, type: 'working' }, { weight: 50, reps: 10, type: 'working' }, { weight: 53, reps: 8, type: 'top' }] },
+        { name: 'Cable Flies',                       sets: [{ weight: 10, reps: 12, type: 'working' }, { weight: 12, reps: 8,  type: 'top' }] },
+        { name: 'Dumbbell Pullovers',                sets: [{ weight: 18, reps: 12, type: 'working' }, { weight: 20, reps: 10, type: 'top' }] },
+        { name: 'Weighted Dips',                     sets: [{ weight: 9,  reps: 8,  type: 'top' }] },
+        { name: 'Rope Tricep Pulldowns',             sets: [{ weight: 23, reps: 15, type: 'working' }, { weight: 26, reps: 10, type: 'top' }] },
+        { name: 'Cable Tricep Pullovers',            sets: [{ weight: 22, reps: 14, type: 'working' }, { weight: 25, reps: 6,  type: 'top' }] },
+        { name: 'Skull Crushers',                    sets: [{ weight: 25, reps: 8,  type: 'top' }] },
+        { name: 'Narrow Bench Press',                sets: [{ weight: 30, reps: 18, type: 'working' }, { weight: 35, reps: 14, type: 'top' }] },
+        { name: 'Two Hand Behind Head Dumbbell Press', sets: [{ weight: 17, reps: 8, type: 'top' }] },
+      ],
+    },
+    {
+      id: 'w-pull-1',
+      date: '2025-12-01T09:00:00',
+      localDateKey: '2025-12-01',
+      template: 'Pull',
+      notes: 'Imported session A',
+      exercises: [
+        { name: 'Backwards Sit-Ups',        sets: [{ weight: 12, reps: 16, type: 'working' }, { weight: 16, reps: 12, type: 'top' }] },
+        { name: 'Lat Pulldown Machine',      sets: [{ weight: 65, reps: 5,  type: 'top' }] },
+        { name: 'ISO Lat Pulldown Machine',  sets: [{ weight: 65, reps: 12, type: 'working' }, { weight: 80, reps: 6,  type: 'top' }] },
+        { name: 'ISO Cable Lat Pulldowns',   sets: [{ weight: 20, reps: 15, type: 'working' }, { weight: 25, reps: 8,  type: 'top' }] },
+        { name: 'Bent Over Crucifixes',      sets: [{ weight: 6,  reps: 16, type: 'working' }, { weight: 7,  reps: 10, type: 'top' }] },
+        { name: 'Seated Row',                sets: [{ weight: 65, reps: 12, type: 'working' }, { weight: 87, reps: 6,  type: 'top' }] },
+        { name: 'ISO Seated Row',            sets: [{ weight: 40, reps: 8,  type: 'top' }] },
+        { name: 'Deadlift',                  sets: [{ weight: 70, reps: 12, type: 'working' }, { weight: 80, reps: 10, type: 'top' }] },
+        { name: 'Box Deadlift',              sets: [{ weight: 90, reps: 6,  type: 'top' }] },
+        { name: 'Bent Over Barbell Row',     sets: [{ weight: 70, reps: 8,  type: 'working' }, { weight: 75, reps: 5,  type: 'top' }] },
+        { name: 'Reverse Peck Deck',         sets: [{ weight: 38, reps: 8,  type: 'top' }] },
+        { name: 'Seated Cable Rows',         sets: [{ weight: 45, reps: 10, type: 'working' }, { weight: 55, reps: 8,  type: 'top' }] },
+        { name: 'Cable Curls',               sets: [{ weight: 20, reps: 8,  type: 'working' }, { weight: 22, reps: 6,  type: 'top' }] },
+        { name: 'Heavy Hammers',             sets: [{ weight: 22, reps: 8,  type: 'top' }] },
+        { name: 'Drag Curls',                sets: [{ weight: 30, reps: 12, type: 'top' }] },
+        { name: 'Barbell Curls',             sets: [{ weight: 25, reps: 8,  type: 'top' }] },
+        { name: 'Seated Barbell Curls',      sets: [{ weight: 30, reps: 8,  type: 'top' }] },
+      ],
+    },
+    {
+      id: 'w-shoulders-1',
+      date: '2025-12-01T09:00:00',
+      localDateKey: '2025-12-01',
+      template: 'Shoulders',
+      notes: 'Imported session A',
+      exercises: [
+        { name: 'Crucifixes',             sets: [{ weight: 8,  reps: 20, type: 'working' }, { weight: 12, reps: 10, type: 'top' }] },
+        { name: 'Shoulder Press',         sets: [{ weight: 18, reps: 15, type: 'working' }, { weight: 22, reps: 6,  type: 'top' }] },
+        { name: 'Arnold Press',           sets: [{ weight: 14, reps: 15, type: 'working' }, { weight: 20, reps: 6,  type: 'top' }] },
+        { name: 'Military Press',         sets: [{ weight: 40, reps: 12, type: 'working' }, { weight: 50, reps: 8,  type: 'top' }] },
+        { name: 'Dumbbell Shrugs',        sets: [{ weight: 24, reps: 12, type: 'working' }, { weight: 28, reps: 10, type: 'top' }] },
+        { name: 'Reverse Peck Deck Low',  sets: [{ weight: 35, reps: 15, type: 'working' }, { weight: 50, reps: 6,  type: 'top' }] },
+        { name: 'Decline Bench Shrugs',   sets: [{ weight: 16, reps: 12, type: 'working' }, { weight: 20, reps: 10, type: 'top' }] },
+        { name: 'Cable Rope to Eyes',     sets: [{ weight: 20, reps: 12, type: 'top' }] },
+        { name: 'Front Barbell Raises',   sets: [{ weight: 25, reps: 10, type: 'top' }] },
+        { name: 'Front Plate Raises',     sets: [{ weight: 10, reps: 15, type: 'top' }] },
+        { name: 'Front Dumbbell Raises',  sets: [{ weight: 7,  reps: 15, type: 'working' }, { weight: 9,  reps: 8,  type: 'top' }] },
+      ],
+    },
+    {
+      id: 'w-abs-1',
+      date: '2025-12-01T09:00:00',
+      localDateKey: '2025-12-01',
+      template: 'Abs',
+      notes: 'Imported session A',
+      exercises: [
+        { name: 'Cable Crunches',        sets: [{ weight: 40, reps: 20, type: 'top' }] },
+        { name: 'Side Kettlebell Raises', sets: [{ weight: 24, reps: 14, type: 'working' }, { weight: 28, reps: 12, type: 'top' }] },
+        { name: 'Cable Lumberjacks',     sets: [{ weight: 20, reps: 10, type: 'top' }] },
+      ],
+    },
   ],
 
   bodyweights: [
-    { id: 'bw1', date: '2026-02-03', weight: 79.2 },
-    { id: 'bw2', date: '2026-02-06', weight: 79.0 },
-    { id: 'bw3', date: '2026-02-09', weight: 78.8 },
-    { id: 'bw4', date: '2026-02-12', weight: 79.4 },
-    { id: 'bw5', date: '2026-02-15', weight: 79.1 },
-    { id: 'bw6', date: '2026-02-18', weight: 78.9 },
-    { id: 'bw7', date: '2026-02-21', weight: 79.3 },
-    { id: 'bw8', date: '2026-02-24', weight: 79.0 },
+    { id: 'bw-import-1', date: '2025-12-01', weight: 80 },
   ],
 }
