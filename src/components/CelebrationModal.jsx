@@ -22,7 +22,7 @@ function burstConfetti(canvas) {
   const ctx = canvas.getContext('2d')
   const w = canvas.width, h = canvas.height
 
-  const pieces = Array.from({ length: 150 }, () => ({
+  const pieces = Array.from({ length: 60 }, () => ({
     x:   Math.random() * w,
     y:   -20 - Math.random() * h * 0.25,
     vx:  (Math.random() - 0.5) * 7,
@@ -53,7 +53,7 @@ function burstConfetti(canvas) {
       ctx.fillRect(-p.r, -p.r, p.r * 2, p.r * 2)
       ctx.restore()
     }
-    if (t - start < 2000) rafId = requestAnimationFrame(tick)
+    if (t - start < 1400) rafId = requestAnimationFrame(tick)
     else ctx.clearRect(0, 0, w, h)
   }
   rafId = requestAnimationFrame(tick)

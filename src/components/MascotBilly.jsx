@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BILLY_QUOTES, computeBillyLevel, pick } from '../utils/mascotBilly'
 
-// Simple white horse head SVG — clean minimal icon
+// Unicorn horse head SVG — white horse with rainbow horn
 function HorseHead({ mood }) {
   return (
     <svg
@@ -9,23 +9,37 @@ function HorseHead({ mood }) {
       className={`billySvg billy-mood-${mood}`}
       aria-hidden="true"
     >
+      {/* Unicorn horn — pointing up-right from forehead */}
+      <polygon
+        points="41,6 35,22 47,22"
+        fill="url(#hornGrad)"
+        stroke="#e8c0ff"
+        strokeWidth="0.5"
+      />
+      <defs>
+        <linearGradient id="hornGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#ff6bff" />
+          <stop offset="50%"  stopColor="#ffaa33" />
+          <stop offset="100%" stopColor="#33ddff" />
+        </linearGradient>
+      </defs>
       {/* Head shape */}
-      <ellipse cx="40" cy="38" rx="22" ry="26" fill="white" stroke="#e0e0e0" strokeWidth="1.5" />
-      {/* Mane */}
-      <path d="M22 18 Q18 10 26 8 Q30 6 32 14" fill="#ddd" />
-      <path d="M26 14 Q20 8 28 6 Q34 5 34 12" fill="#ccc" />
-      {/* Ear left */}
-      <path d="M30 14 Q28 6 35 8 Q38 9 36 16" fill="white" stroke="#ddd" strokeWidth="1" />
+      <ellipse cx="40" cy="42" rx="22" ry="24" fill="white" stroke="#e8e8e8" strokeWidth="1" />
+      {/* Ear */}
+      <path d="M30 22 Q27 14 34 16 Q37 17 35 23" fill="white" stroke="#e0e0e0" strokeWidth="1" />
+      {/* Mane wisps */}
+      <path d="M20 28 Q14 24 18 36" fill="none" stroke="#ffaaee" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M19 35 Q12 32 16 44" fill="none" stroke="#aaccff" strokeWidth="2" strokeLinecap="round" />
       {/* Eye */}
-      <ellipse cx="47" cy="34" rx="3.5" ry="4" fill="#222" />
-      <circle cx="48.5" cy="32.5" r="1" fill="white" opacity="0.7" />
+      <ellipse cx="47" cy="38" rx="3.5" ry="4" fill="#1a1a2e" />
+      <circle cx="48.5" cy="36.5" r="1.2" fill="white" opacity="0.8" />
       {/* Nostril */}
-      <ellipse cx="50" cy="52" rx="2.5" ry="1.8" fill="#ddd" />
+      <ellipse cx="50" cy="55" rx="2.5" ry="1.8" fill="#eee" />
       {/* Mouth */}
       {mood === 'sad' ? (
-        <path d="M38 60 Q44 58 50 60" fill="none" stroke="#bbb" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M38 63 Q44 61 50 63" fill="none" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round" />
       ) : (
-        <path d="M38 60 Q44 62 50 60" fill="none" stroke="#bbb" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M38 63 Q44 65 50 63" fill="none" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round" />
       )}
     </svg>
   )

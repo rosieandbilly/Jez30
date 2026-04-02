@@ -22,9 +22,27 @@ import { computeWeeklyRecap } from './utils/weeklyRecap'
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY    = 'jez30-tracker-v1'
+const BACKUP_KEY     = 'jez30-tracker-backup'
 const ACH_KEY        = 'jez30-unlocked-achievements'
 const RECAP_SEEN_KEY = 'jez30-last-recap-sunday'
 const SCHEMA_VERSION = 3
+
+// ── Data validation ───────────────────────────────────────────────────────────
+
+function isValidData(d) {
+  return (
+    d !== null &&
+    typeof d === 'object' &&
+    Array.isArray(d.workouts) &&
+    Array.isArray(d.bodyweights) &&
+    typeof d.schemaVersion === 'number'
+  )
+}
+
+function isRicherThan(candidate, existing) {
+  // Prefer whichever has more workouts — prevents overwriting with an empty reset
+  return (candidate.workouts?.length ?? 0) >= (existing.workouts?.length ?? 0)
+}
 
 // ── Migration ─────────────────────────────────────────────────────────────────
 
@@ -74,10 +92,16 @@ function migrate(data) {
 }
 
 function loadData() {
-  try {
-    const s = localStorage.getItem(STORAGE_KEY)
-    if (s) return migrate(JSON.parse(s))
-  } catch {}
+  // Try primary key first, then backup, then seed
+  const candidates = [STORAGE_KEY, BACKUP_KEY]
+  for (const key of candidates) {
+    try {
+      const s = localStorage.getItem(key)
+      if (!s) continue
+      const parsed = JSON.parse(s)
+      if (isValidData(parsed)) return migrate(parsed)
+    } catch {}
+  }
   const fresh = { ...SEED_DATA, exercises: SEED_EXERCISES, templates: SEED_TEMPLATES, schemaVersion: SCHEMA_VERSION }
   return migrate({ ...fresh, schemaVersion: 1 })
 }
@@ -123,7 +147,26 @@ export default function App() {
   // ── Persist data & theme ───────────────────────────────────────────────────
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+    if (!isValidData(data)) return   // never overwrite with bad state
+
+    try {
+      // Read what's currently on disk before overwriting
+      const existing = (() => {
+        try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : null } catch { return null }
+      })()
+
+      // Promote the current on-disk value to backup if it was valid and richer
+      if (isValidData(existing) && isRicherThan(existing, data)) {
+        localStorage.setItem(BACKUP_KEY, JSON.stringify(existing))
+      }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+
+      // After writing, promote the new value to backup if it's the richest we've seen
+      if (!isValidData(existing) || isRicherThan(data, existing)) {
+        localStorage.setItem(BACKUP_KEY, JSON.stringify(data))
+      }
+    } catch {}
   }, [data])
 
   useEffect(() => {
@@ -284,45 +327,60 @@ export default function App() {
 
   // ── Exercise library handlers ──────────────────────────────────────────────
 
-  function setExercises(exercises) {
+  const setExercises = useCallback((exercises) => {
     setData(d => ({ ...d, exercises }))
-  }
+  }, [])
 
   // ── Template handlers ──────────────────────────────────────────────────────
 
-  function setTemplates(templates) {
+  const setTemplates = useCallback((templates) => {
     setData(d => ({ ...d, templates }))
-  }
+  }, [])
 
   // ── Navigation ─────────────────────────────────────────────────────────────
 
-  function handleTabChange(newTab) {
+  const handleTabChange = useCallback((newTab) => {
     if (newTab !== 'create') setPrefillDate(null)
     setTab(newTab)
-  }
+  }, [])
 
-  function handleSelectWorkout(id) {
+  const handleSelectWorkout = useCallback((id) => {
     setDetailId(id)
-  }
+  }, [])
 
-  function handleBack() {
+  const handleBack = useCallback(() => {
     setDetailId(null)
-  }
+  }, [])
 
-  function handleLogWorkout(dateKey) {
+  const handleLogWorkout = useCallback((dateKey) => {
     setPrefillDate(dateKey)
     setTab('create')
-  }
+  }, [])
 
-  // ── Mascot signals ─────────────────────────────────────────────────────────
+  // ── Mascot signals (memoised — only recompute when workouts change) ─────────
 
-  const billy_workoutsLast7 = workoutsLast7Days(data.workouts)
-  const billy_streak        = computeCurrentStreak(data.workouts)
-  const billy_prsLast7      = countPRsInLastNDays(data.workouts, 7)
+  const sortedWorkouts = useMemo(
+    () => [...data.workouts].sort((a, b) => b.date.localeCompare(a.date)),
+    [data.workouts]
+  )
+
+  const billy_workoutsLast7 = useMemo(
+    () => workoutsLast7Days(data.workouts),
+    [data.workouts]
+  )
+
+  const billy_streak = useMemo(
+    () => computeCurrentStreak(data.workouts),
+    [data.workouts]
+  )
+
+  // countPRsInLastNDays is the most expensive call — iterate once per workouts change
+  const billy_prsLast7 = useMemo(
+    () => countPRsInLastNDays(data.workouts, 7),
+    [data.workouts]
+  )
 
   // ── Render ─────────────────────────────────────────────────────────────────
-
-  const sortedWorkouts = [...data.workouts].sort((a, b) => b.date.localeCompare(a.date))
 
   // Workout detail overlay (full-screen, no nav bar)
   if (detailId) {
