@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { SEED_DATA, SEED_EXERCISES, SEED_TEMPLATES } from './data/seed'
 import { getDateKey, todayLocalKey } from './utils'
 import NavBar from './components/NavBar'
