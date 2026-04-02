@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BILLY_QUOTES, computeBillyLevel, pick } from '../utils/mascotBilly'
 
-// Unicorn horse head SVG — white horse with rainbow horn
+// Unicorn horse head SVG — white with electric blue details
 function HorseHead({ mood }) {
   return (
     <svg
@@ -9,37 +9,37 @@ function HorseHead({ mood }) {
       className={`billySvg billy-mood-${mood}`}
       aria-hidden="true"
     >
-      {/* Unicorn horn — pointing up-right from forehead */}
+      <defs>
+        <linearGradient id="hornGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#ff6bff" />
+          <stop offset="50%"  stopColor="#F59E0B" />
+          <stop offset="100%" stopColor="#4A90D9" />
+        </linearGradient>
+      </defs>
+      {/* Unicorn horn */}
       <polygon
-        points="41,6 35,22 47,22"
+        points="41,4 34,22 48,22"
         fill="url(#hornGrad)"
         stroke="#e8c0ff"
         strokeWidth="0.5"
       />
-      <defs>
-        <linearGradient id="hornGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#ff6bff" />
-          <stop offset="50%"  stopColor="#ffaa33" />
-          <stop offset="100%" stopColor="#33ddff" />
-        </linearGradient>
-      </defs>
-      {/* Head shape */}
-      <ellipse cx="40" cy="42" rx="22" ry="24" fill="white" stroke="#e8e8e8" strokeWidth="1" />
+      {/* Head */}
+      <ellipse cx="40" cy="44" rx="22" ry="24" fill="white" stroke="#4A90D9" strokeWidth="1.2" />
       {/* Ear */}
-      <path d="M30 22 Q27 14 34 16 Q37 17 35 23" fill="white" stroke="#e0e0e0" strokeWidth="1" />
+      <path d="M30 22 Q27 13 34 15 Q37 16 35 23" fill="white" stroke="#4A90D9" strokeWidth="1" />
       {/* Mane wisps */}
-      <path d="M20 28 Q14 24 18 36" fill="none" stroke="#ffaaee" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M19 35 Q12 32 16 44" fill="none" stroke="#aaccff" strokeWidth="2" strokeLinecap="round" />
+      <path d="M20 28 Q13 23 17 37" fill="none" stroke="#7B4FBF" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M18 37 Q11 32 15 46" fill="none" stroke="#4A90D9" strokeWidth="2" strokeLinecap="round" />
       {/* Eye */}
-      <ellipse cx="47" cy="38" rx="3.5" ry="4" fill="#1a1a2e" />
-      <circle cx="48.5" cy="36.5" r="1.2" fill="white" opacity="0.8" />
+      <ellipse cx="48" cy="39" rx="3.5" ry="4" fill="#0D1529" />
+      <circle cx="49.5" cy="37.5" r="1.2" fill="white" opacity="0.9" />
       {/* Nostril */}
-      <ellipse cx="50" cy="55" rx="2.5" ry="1.8" fill="#eee" />
+      <ellipse cx="51" cy="57" rx="2.5" ry="1.8" fill="#e8e8ff" opacity="0.7" />
       {/* Mouth */}
       {mood === 'sad' ? (
-        <path d="M38 63 Q44 61 50 63" fill="none" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M38 66 Q44 63 50 66" fill="none" stroke="#4A90D9" strokeWidth="1.5" strokeLinecap="round" />
       ) : (
-        <path d="M38 63 Q44 65 50 63" fill="none" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M38 66 Q44 69 50 66" fill="none" stroke="#4A90D9" strokeWidth="1.5" strokeLinecap="round" />
       )}
     </svg>
   )
@@ -65,7 +65,7 @@ export default function MascotBilly({ workoutsLast7, prsLast7, streak, event }) 
       setMood('calm')
       setSpeech(event.message || pick(BILLY_QUOTES.DELOAD))
     }
-    const t = setTimeout(() => { setMood('calm'); setSpeech('') }, 2800)
+    const t = setTimeout(() => { setMood('calm'); setSpeech('') }, 3200)
     return () => clearTimeout(t)
   }, [event])
 

@@ -6,7 +6,6 @@ import { getTopSet, formatDate, getDateKey, fmtVol, calc1RM } from '../utils'
 const PERIODS = [
   { label: '7d',  days: 7   },
   { label: '30d', days: 30  },
-  { label: '90d', days: 90  },
   { label: '1yr', days: 365 },
   { label: 'All', days: Infinity },
 ]
@@ -33,17 +32,18 @@ function getExerciseHistory(workouts, exerciseName) {
   const sessions = []
   workouts.forEach(w => {
     const ex = w.exercises.find(e => e.name === exerciseName)
-    if (!ex) return
+    if (!ex || !ex.sets || ex.sets.length === 0) return
     const top = getTopSet(ex)
+    if (!top) return
     const vol = ex.sets
       .filter(s => s.type !== 'warmup')
-      .reduce((sum, s) => sum + s.weight * s.reps, 0)
+      .reduce((sum, s) => sum + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0)
     sessions.push({
       dateKey:   w.localDateKey || getDateKey(w.date),
       dateLabel: formatDate(w.date),
       workoutId: w.id,
-      topWeight: top.weight,
-      topReps:   top.reps,
+      topWeight: Number(top.weight) || 0,
+      topReps:   Number(top.reps)   || 0,
       volume:    vol,
       sets:      ex.sets,
     })
@@ -51,10 +51,139 @@ function getExerciseHistory(workouts, exerciseName) {
   return sessions.sort((a, b) => a.dateKey.localeCompare(b.dateKey))
 }
 
+// ─── SVG Line Graph ───────────────────────────────────────────────────────────
+
+function LineGraph({ sessions, bestWeight }) {
+  if (sessions.length < 2) {
+    // Show single point
+    if (sessions.length === 1) {
+      return (
+        <div style={{ textAlign: 'center', padding: '12px 0', color: 'var(--text-dim)', fontSize: 13 }}>
+          Only one session — need 2+ to draw a line.
+        </div>
+      )
+    }
+    return null
+  }
+
+  const W = 300, H = 130
+  const PAD = { top: 12, right: 12, bottom: 32, left: 34 }
+  const chartW = W - PAD.left - PAD.right
+  const chartH = H - PAD.top - PAD.bottom
+
+  const weights = sessions.map(s => s.topWeight)
+  const rawMin  = Math.min(...weights)
+  const rawMax  = Math.max(...weights)
+  // Add a little padding so points don't sit exactly on the edge
+  const padding = Math.max((rawMax - rawMin) * 0.15, 2.5)
+  const yMin    = rawMin - padding
+  const yMax    = rawMax + padding
+  const yRange  = yMax - yMin || 1
+
+  const n = sessions.length
+  function sx(i) { return PAD.left + (i / (n - 1)) * chartW }
+  function sy(w) { return PAD.top + chartH - ((w - yMin) / yRange) * chartH }
+
+  const polyPts = sessions.map((s, i) => `${sx(i)},${sy(s.topWeight)}`).join(' ')
+  // Area fill polygon: close below the line
+  const areaPts = `${sx(0)},${PAD.top + chartH} ${polyPts} ${sx(n - 1)},${PAD.top + chartH}`
+
+  // Y-axis grid lines at 3 levels
+  const yTicks = [rawMin, (rawMin + rawMax) / 2, rawMax]
+
+  // X labels: show up to 5 evenly spaced, always including last
+  const xIndices = []
+  const maxLabels = Math.min(5, n)
+  for (let i = 0; i < maxLabels; i++) {
+    xIndices.push(Math.round(i * (n - 1) / (maxLabels - 1)) || 0)
+  }
+  const xIndexSet = new Set(xIndices)
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}
+      aria-hidden="true"
+    >
+      {/* Grid lines */}
+      {yTicks.map((tick, i) => (
+        <line
+          key={i}
+          x1={PAD.left} y1={sy(tick)}
+          x2={W - PAD.right} y2={sy(tick)}
+          stroke="rgba(74,144,217,0.18)"
+          strokeWidth="0.8"
+          strokeDasharray="4,4"
+        />
+      ))}
+
+      {/* Y-axis labels */}
+      {yTicks.map((tick, i) => (
+        <text
+          key={i}
+          x={PAD.left - 4}
+          y={sy(tick) + 3.5}
+          fontSize="7.5"
+          fill="var(--text-dim)"
+          textAnchor="end"
+        >
+          {Math.round(tick)}
+        </text>
+      ))}
+
+      {/* Area fill */}
+      <polygon points={areaPts} fill="rgba(74,144,217,0.08)" />
+
+      {/* Line */}
+      <polyline
+        points={polyPts}
+        fill="none"
+        stroke="#4A90D9"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+
+      {/* Data dots */}
+      {sessions.map((s, i) => {
+        const isBest = s.topWeight === bestWeight
+        return (
+          <circle
+            key={i}
+            cx={sx(i)}
+            cy={sy(s.topWeight)}
+            r={isBest ? 4.5 : 3}
+            fill={isBest ? '#F59E0B' : '#4A90D9'}
+            stroke={isBest ? '#F59E0B' : 'var(--surface)'}
+            strokeWidth="1.5"
+          />
+        )
+      })}
+
+      {/* X-axis date labels */}
+      {sessions.map((s, i) => {
+        if (!xIndexSet.has(i)) return null
+        return (
+          <text
+            key={i}
+            x={sx(i)}
+            y={H - 4}
+            fontSize="7"
+            fill="var(--text-dim)"
+            textAnchor="middle"
+          >
+            {s.dateKey.slice(5)}
+          </text>
+        )
+      })}
+    </svg>
+  )
+}
+
 // ─── Exercise Progress Detail ─────────────────────────────────────────────────
 
 function ExerciseProgressDetail({ exerciseName, workouts, onBack }) {
-  const [periodIdx, setPeriodIdx] = useState(2) // default 90d
+  const [periodIdx, setPeriodIdx] = useState(3) // default: All
 
   const { days }  = PERIODS[periodIdx]
   const cutoff    = getCutoff(days)
@@ -69,22 +198,19 @@ function ExerciseProgressDetail({ exerciseName, workouts, onBack }) {
     [allHistory, cutoff]
   )
 
-  // ── PR metrics ─────────────────────────────────────────────────────────
   const bestWeight = filtered.length > 0 ? Math.max(...filtered.map(s => s.topWeight)) : 0
   const bestEntry  = filtered.find(s => s.topWeight === bestWeight) || null
   const estRM      = bestEntry ? calc1RM(bestEntry.topWeight, bestEntry.topReps) : 0
   const repPR      = filtered
     .filter(s => s.topWeight === bestWeight)
     .reduce((max, s) => Math.max(max, s.topReps), 0)
-  const volPR      = filtered.length > 0 ? Math.max(...filtered.map(s => s.volume)) : 0
+  const volPR = filtered.length > 0 ? Math.max(...filtered.map(s => s.volume)) : 0
 
   const totalSessions = filtered.length
   const avgVol        = filtered.length > 0
     ? filtered.reduce((s, h) => s + h.volume, 0) / filtered.length
     : 0
 
-  const chartSessions = filtered.slice(-16)
-  const chartMax      = Math.max(...chartSessions.map(s => s.topWeight), 1)
   const recentSessions = [...filtered].reverse().slice(0, 12)
 
   return (
@@ -154,28 +280,11 @@ function ExerciseProgressDetail({ exerciseName, workouts, onBack }) {
             </div>
           </div>
 
-          {/* Top-set weight chart */}
-          {chartSessions.length > 1 && (
+          {/* Line graph */}
+          {filtered.length > 0 && (
             <div className="card">
               <div className="card-title">Top Set Weight (kg)</div>
-              <div className="bar-chart">
-                {chartSessions.map((s, i) => (
-                  <div key={i} className="bar-col">
-                    <div className="bar-track">
-                      <div
-                        className="bar-fill"
-                        style={{
-                          height: `${Math.max(4, (s.topWeight / chartMax) * 100)}%`,
-                          background: s.topWeight === bestWeight
-                            ? 'var(--primary)'
-                            : 'rgba(0,122,255,0.45)',
-                        }}
-                      />
-                    </div>
-                    <span className="bar-label">{s.dateKey.slice(5)}</span>
-                  </div>
-                ))}
-              </div>
+              <LineGraph sessions={filtered} bestWeight={bestWeight} />
             </div>
           )}
 
@@ -221,7 +330,7 @@ function ExerciseProgressDetail({ exerciseName, workouts, onBack }) {
 
 // ─── Main Progress View ───────────────────────────────────────────────────────
 
-export default function ProgressView({ workouts, bodyweights }) {
+export default function ProgressView({ workouts }) {
   const [selectedExercise, setSelectedExercise] = useState(null)
   const [exSearch, setExSearch]                 = useState('')
 
@@ -235,14 +344,6 @@ export default function ProgressView({ workouts, bodyweights }) {
     )
   }
 
-  // ── Bodyweight summary ─────────────────────────────────────────────────────
-  const sortedBW   = [...bodyweights].sort((a, b) => b.date.localeCompare(a.date))
-  const bwForChart = sortedBW.slice(0, 12).reverse()
-  const bwMin      = bwForChart.length > 0 ? Math.min(...bwForChart.map(e => e.weight)) - 1 : 0
-  const bwMax      = bwForChart.length > 0 ? Math.max(...bwForChart.map(e => e.weight)) + 1 : 1
-  const bwRange    = bwMax - bwMin || 1
-
-  // ── Exercise list ──────────────────────────────────────────────────────────
   const allExerciseNames = getExerciseNames(workouts)
   const exerciseNames    = exSearch.trim()
     ? allExerciseNames.filter(n => n.toLowerCase().includes(exSearch.trim().toLowerCase()))
@@ -252,8 +353,11 @@ export default function ProgressView({ workouts, bodyweights }) {
     const map = {}
     workouts.forEach(w => {
       w.exercises.forEach(ex => {
+        if (!ex.sets || ex.sets.length === 0) return
         const top = getTopSet(ex)
-        if (!map[ex.name] || top.weight > map[ex.name]) map[ex.name] = top.weight
+        if (!top) return
+        const w_ = Number(top.weight) || 0
+        if (!map[ex.name] || w_ > map[ex.name]) map[ex.name] = w_
       })
     })
     return map
@@ -265,73 +369,8 @@ export default function ProgressView({ workouts, bodyweights }) {
         <h1 className="screen-title">Progress</h1>
       </div>
 
-      {/* ── Bodyweight ── */}
-      <div className="section-label">Bodyweight</div>
-
-      {sortedBW.length === 0 ? (
-        <div className="card">
-          <span className="c-dim fs-13">No bodyweight entries yet. Add one in the Weight tab.</span>
-        </div>
-      ) : (
-        <div className="card">
-          {bwForChart.length > 1 && (
-            <div className="bw-sparkline">
-              {bwForChart.map((e, i) => (
-                <div
-                  key={e.id}
-                  className="bw-bar"
-                  style={{
-                    height: `${Math.max(8, ((e.weight - bwMin) / bwRange) * 100)}%`,
-                    opacity: 0.4 + (i / bwForChart.length) * 0.6,
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 10 }}>
-            <span style={{ fontSize: 28, fontWeight: 700 }}>{sortedBW[0].weight}</span>
-            <span className="c-dim">kg</span>
-            {sortedBW.length > 1 && (() => {
-              const delta = sortedBW[0].weight - sortedBW[1].weight
-              const cls   = delta > 0 ? 'delta-pos' : delta < 0 ? 'delta-neg' : 'delta-neu'
-              const str   = delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1)
-              return <span className={`delta ${cls}`}>{str} kg</span>
-            })()}
-            <span className="c-dim fs-12" style={{ marginLeft: 'auto' }}>{sortedBW[0].date}</span>
-          </div>
-
-          {sortedBW.slice(0, 6).map((entry, i) => {
-            const next     = sortedBW[i + 1]
-            const delta    = next ? entry.weight - next.weight : null
-            const deltaStr = delta !== null
-              ? (delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1))
-              : null
-            return (
-              <div
-                key={entry.id}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  paddingTop: 8, paddingBottom: 8, borderTop: '1px solid var(--border-soft)',
-                }}
-              >
-                <span className="fs-13 c-dim">{entry.date}</span>
-                <div className="row gap-6">
-                  <span className="fw-600">{entry.weight} kg</span>
-                  {deltaStr && (
-                    <span className={`delta ${delta > 0 ? 'delta-pos' : delta < 0 ? 'delta-neg' : 'delta-neu'}`}>
-                      {deltaStr}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
       {/* ── Exercise list ── */}
-      <div className="section-label" style={{ marginTop: 8 }}>Exercises</div>
+      <div className="section-label" style={{ marginTop: 4 }}>Exercises</div>
 
       {allExerciseNames.length > 0 && (
         <div className="progress-search">

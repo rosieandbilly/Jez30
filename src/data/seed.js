@@ -306,7 +306,5 @@ export const SEED_DATA = {
     },
   ],
 
-  bodyweights: [
-    { id: 'bw-import-1', date: '2025-12-01', weight: 80 },
-  ],
+  bodyweights: [],
 }

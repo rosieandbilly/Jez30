@@ -6,13 +6,34 @@ import {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const BODY_AREAS = ['Upper Body', 'Lower Body', 'Core', 'Full Body']
+const CUSTOM_AREAS_KEY = 'jez30-custom-body-areas'
 
-const AREA_COLORS = {
-  'Upper Body': '#007AFF',
+const DEFAULT_BODY_AREAS = ['Upper Body', 'Lower Body', 'Core', 'Full Body']
+
+const DEFAULT_AREA_COLORS = {
+  'Upper Body': '#4A90D9',
   'Lower Body': '#1c9e43',
-  'Core':       '#b86800',
-  'Full Body':  '#6e4db8',
+  'Core':       '#D63B3B',
+  'Full Body':  '#7B8DB0',
+}
+
+const CUSTOM_COLOR_ROTATION = ['#7B4FBF', '#0096A6', '#C2185B', '#F59E0B']
+
+function loadCustomAreas() {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_AREAS_KEY) || '[]') } catch { return [] }
+}
+
+function getAreaColor(areaName, customAreas) {
+  if (DEFAULT_AREA_COLORS[areaName]) return DEFAULT_AREA_COLORS[areaName]
+  const custom = (customAreas || []).find(a => a.name === areaName)
+  return custom?.color || '#7B8DB0'
+}
+
+function getAllAreas(customAreas) {
+  return [
+    ...DEFAULT_BODY_AREAS.map(name => ({ name, color: DEFAULT_AREA_COLORS[name] })),
+    ...(customAreas || []),
+  ]
 }
 
 const PROG_OPTIONS = [
@@ -111,7 +132,7 @@ function RestTimer({ onClose }) {
 
   return (
     <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="modal-sheet">
+      <div className="modal-sheet modal-simple">
         <div className="modal-handle" />
         <div className="modal-title">Rest Timer</div>
 
@@ -386,11 +407,28 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
 
 // ─── Add Exercise Modal ───────────────────────────────────────────────────────
 
-function AddExerciseModal({ onAdd, onClose }) {
-  const [name, setName]         = useState('')
-  const [bodyArea, setBodyArea] = useState('Upper Body')
-  const [notes, setNotes]       = useState('')
-  const [error, setError]       = useState('')
+function AddExerciseModal({ onAdd, onClose, customAreas, onAddCustomArea }) {
+  const [name, setName]           = useState('')
+  const [bodyArea, setBodyArea]   = useState('Upper Body')
+  const [notes, setNotes]         = useState('')
+  const [error, setError]         = useState('')
+  const [newAreaInput, setNewAreaInput] = useState('')
+
+  const allAreas = getAllAreas(customAreas)
+
+  function handleAddNewArea() {
+    const trimmed = newAreaInput.trim()
+    if (!trimmed) return
+    const existing = allAreas.find(a => a.name.toLowerCase() === trimmed.toLowerCase())
+    if (existing) {
+      setBodyArea(existing.name)
+    } else {
+      const color = CUSTOM_COLOR_ROTATION[customAreas.length % CUSTOM_COLOR_ROTATION.length]
+      onAddCustomArea(trimmed, color)
+      setBodyArea(trimmed)
+    }
+    setNewAreaInput('')
+  }
 
   function handleSubmit() {
     const trimmed = name.trim()
@@ -406,51 +444,80 @@ function AddExerciseModal({ onAdd, onClose }) {
         <div className="modal-handle" />
         <div className="modal-title">Add Exercise</div>
 
-        <div className="form-group">
-          <label className="form-label">Name</label>
-          <input
-            className="input"
-            type="text"
-            placeholder="e.g. Dumbbell Curl"
-            value={name}
-            onChange={e => { setName(e.target.value); setError('') }}
-            autoFocus
-          />
-          {error && <div style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{error}</div>}
-        </div>
+        <div className="modal-sheet-body">
+          <div className="form-group">
+            <label className="form-label">Name</label>
+            <input
+              className="input"
+              type="text"
+              placeholder="e.g. Dumbbell Curl"
+              value={name}
+              onChange={e => { setName(e.target.value); setError('') }}
+              autoFocus
+            />
+            {error && <div style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{error}</div>}
+          </div>
 
-        <div className="form-group">
-          <label className="form-label">Body Area</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingTop: 2 }}>
-            {BODY_AREAS.map(area => (
+          <div className="form-group">
+            <label className="form-label">Body Area</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingTop: 2 }}>
+              {allAreas.map(({ name: areaName, color }) => (
+                <button
+                  key={areaName}
+                  onClick={() => setBodyArea(areaName)}
+                  style={{
+                    padding: '5px 13px',
+                    borderRadius: 20,
+                    border: `1.5px solid ${bodyArea === areaName ? color : 'var(--border)'}`,
+                    background: bodyArea === areaName ? `${color}22` : 'transparent',
+                    color: bodyArea === areaName ? color : 'var(--text-dim)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {areaName}
+                </button>
+              ))}
+            </div>
+            {/* Add custom area */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <input
+                className="input"
+                type="text"
+                placeholder="+ New area name…"
+                value={newAreaInput}
+                onChange={e => setNewAreaInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddNewArea() } }}
+                style={{ fontSize: 14, padding: '8px 12px' }}
+              />
               <button
-                key={area}
-                className={`chip${bodyArea === area ? ' active' : ''}`}
-                style={{ padding: '6px 14px' }}
-                onClick={() => setBodyArea(area)}
+                className="btn btn-secondary"
+                style={{ flexShrink: 0, padding: '8px 14px', fontSize: 13 }}
+                onClick={handleAddNewArea}
               >
-                {area}
+                Add
               </button>
-            ))}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Notes (optional)</label>
+            <input
+              className="input"
+              type="text"
+              placeholder="e.g. Use EZ bar"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+            />
           </div>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Notes (optional)</label>
-          <input
-            className="input"
-            type="text"
-            placeholder="e.g. Use EZ bar"
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-          />
-        </div>
-
-        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+        <div className="modal-sheet-footer">
           <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button
             className="btn btn-primary"
-            style={{ flex: 1, width: 'auto', borderRadius: 'var(--radius-sm)' }}
+            style={{ flex: 1 }}
             onClick={handleSubmit}
           >
             Add
@@ -468,8 +535,16 @@ function ExercisesPanel({ exercises, onUpdate }) {
   const [areaFilter, setAreaFilter] = useState('All')
   const [showAdd, setShowAdd]       = useState(false)
   const [deleteId, setDeleteId]     = useState(null)
+  const [customAreas, setCustomAreas] = useState(loadCustomAreas)
 
-  const areas = ['All', ...BODY_AREAS]
+  const allAreas = getAllAreas(customAreas)
+  const areas = ['All', ...allAreas.map(a => a.name)]
+
+  function handleAddCustomArea(name, color) {
+    const updated = [...customAreas, { name, color }]
+    setCustomAreas(updated)
+    try { localStorage.setItem(CUSTOM_AREAS_KEY, JSON.stringify(updated)) } catch {}
+  }
 
   const filtered = exercises
     .filter(ex => {
@@ -508,15 +583,30 @@ function ExercisesPanel({ exercises, onUpdate }) {
       </div>
 
       <div className="chip-row">
-        {areas.map(area => (
-          <button
-            key={area}
-            className={`chip${areaFilter === area ? ' active' : ''}`}
-            onClick={() => setAreaFilter(area)}
-          >
-            {area}
-          </button>
-        ))}
+        {areas.map(area => {
+          const color = area === 'All' ? 'var(--primary)' : getAreaColor(area, customAreas)
+          const isActive = areaFilter === area
+          return (
+            <button
+              key={area}
+              onClick={() => setAreaFilter(area)}
+              style={{
+                flexShrink: 0,
+                padding: '6px 14px',
+                borderRadius: 20,
+                border: `1.5px solid ${isActive ? color : 'var(--border)'}`,
+                background: isActive ? `${color}22` : 'transparent',
+                color: isActive ? color : 'var(--text-dim)',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {area}
+            </button>
+          )
+        })}
       </div>
 
       {filtered.length === 0 ? (
@@ -529,12 +619,12 @@ function ExercisesPanel({ exercises, onUpdate }) {
             <div key={ex.id} className="ex-lib-row">
               <div style={{
                 width: 8, height: 8, borderRadius: '50%',
-                background: AREA_COLORS[ex.bodyArea] || 'var(--text-dim)',
+                background: getAreaColor(ex.bodyArea, customAreas),
                 flexShrink: 0,
               }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{ex.name}</div>
-                <div className="ex-lib-area" style={{ color: AREA_COLORS[ex.bodyArea] || 'var(--text-dim)' }}>
+                <div className="ex-lib-area" style={{ color: getAreaColor(ex.bodyArea, customAreas) }}>
                   {ex.bodyArea}
                 </div>
                 {ex.notes ? (
@@ -566,12 +656,17 @@ function ExercisesPanel({ exercises, onUpdate }) {
       </div>
 
       {showAdd && (
-        <AddExerciseModal onAdd={handleAdd} onClose={() => setShowAdd(false)} />
+        <AddExerciseModal
+          onAdd={handleAdd}
+          onClose={() => setShowAdd(false)}
+          customAreas={customAreas}
+          onAddCustomArea={handleAddCustomArea}
+        />
       )}
 
       {deleteTarget && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setDeleteId(null) }}>
-          <div className="modal-sheet">
+          <div className="modal-sheet modal-simple">
             <div className="modal-handle" />
             <div className="confirm-msg">Delete "{deleteTarget.name}"?</div>
             <div className="confirm-sub">This will not affect logged workouts.</div>
@@ -678,12 +773,15 @@ function TemplateEditor({ exercises, template, onSave, onClose }) {
     })
   }
 
+  const customAreas = useMemo(loadCustomAreas, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal-sheet">
         <div className="modal-handle" />
         <div className="modal-title">{template ? 'Edit Workout' : 'New Workout'}</div>
 
+        <div className="modal-sheet-body">
         {/* Template name */}
         <div className="form-group">
           <label className="form-label">Template Name</label>
@@ -903,7 +1001,7 @@ function TemplateEditor({ exercises, template, onSave, onClose }) {
                       <div style={{ fontSize: 14, fontWeight: 600 }}>{ex.name}</div>
                       <div style={{
                         fontSize: 11, fontWeight: 600, marginTop: 1,
-                        color: AREA_COLORS[ex.bodyArea] || 'var(--text-dim)',
+                        color: getAreaColor(ex.bodyArea, customAreas),
                       }}>
                         {ex.bodyArea}
                       </div>
@@ -915,17 +1013,18 @@ function TemplateEditor({ exercises, template, onSave, onClose }) {
           )}
         </div>
 
-        {error && (
-          <div style={{ color: 'var(--danger)', fontSize: 12, marginBottom: 10 }}>{error}</div>
-        )}
+        </div>{/* end modal-sheet-body */}
 
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className="modal-sheet-footer">
+          {error && (
+            <div style={{ color: 'var(--danger)', fontSize: 12, width: '100%', marginBottom: 6 }}>{error}</div>
+          )}
           <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>
             Cancel
           </button>
           <button
             className="btn btn-primary"
-            style={{ flex: 1, width: 'auto', borderRadius: 'var(--radius-sm)' }}
+            style={{ flex: 1 }}
             onClick={handleSave}
           >
             Save
@@ -1011,7 +1110,7 @@ function WorkoutsPanel({ templates, exercises, onUpdate, onStartWorkout, prefill
 
       {deleteTarget && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setDeleteId(null) }}>
-          <div className="modal-sheet">
+          <div className="modal-sheet modal-simple">
             <div className="modal-handle" />
             <div className="confirm-msg">Delete "{deleteTarget.name}"?</div>
             <div className="confirm-sub">This will not affect your logged workout history.</div>

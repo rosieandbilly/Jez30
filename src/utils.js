@@ -31,9 +31,24 @@ export function formatDateShort(dateStr) {
  * Return the CSS tag class for a template name.
  */
 export function tagClass(template) {
-  if (template.startsWith('Upper')) return 'tag-upper'
-  if (template.startsWith('Lower')) return 'tag-lower'
-  return 'tag-push'
+  if (template === 'Legs')      return 'tag-legs'
+  if (template === 'Push')      return 'tag-push'
+  if (template === 'Pull')      return 'tag-pull'
+  if (template === 'Shoulders') return 'tag-shoulders'
+  if (template === 'Abs')       return 'tag-abs'
+  return 'tag-default'
+}
+
+/**
+ * Return the hex colour for a template/muscle group.
+ */
+export function getTemplateColor(template) {
+  if (template === 'Legs')      return '#1c9e43'
+  if (template === 'Push')      return '#b86800'
+  if (template === 'Pull')      return '#4A90D9'
+  if (template === 'Shoulders') return '#7B4FBF'
+  if (template === 'Abs')       return '#D63B3B'
+  return '#7B8DB0'
 }
 
 /**

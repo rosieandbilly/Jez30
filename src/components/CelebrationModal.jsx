@@ -6,6 +6,10 @@ const QUOTES = [
   "You're sex on legs",
   'God Rosie is lucky',
   "Let's take this energy back to the bedroom ;)",
+  'COYS — absolute beast.',
+  'Harry Kane never trained this hard.',
+  'Pochettino would be proud.',
+  "That's a new PB, Jez. Levy is shook.",
 ]
 
 function pickRandom(arr) {
@@ -49,7 +53,16 @@ function burstConfetti(canvas) {
       ctx.save()
       ctx.translate(p.x, p.y)
       ctx.rotate(p.rot)
-      ctx.fillStyle = `hsl(${p.hue} 88% 62%)`
+      // Spurs palette: navy, electric blue, white, gold, and accent colours
+      const CONFETTI_COLORS = [
+        '#4A90D9', '#4A90D9', '#4A90D9',  // electric blue (most common)
+        '#F59E0B', '#F59E0B',              // gold
+        '#FFFFFF', '#FFFFFF',              // white
+        '#1A2B5E',                         // navy
+        '#7B4FBF',                         // purple
+        '#1c9e43',                         // green
+      ]
+      ctx.fillStyle = CONFETTI_COLORS[Math.floor(p.hue / 36) % CONFETTI_COLORS.length]
       ctx.fillRect(-p.r, -p.r, p.r * 2, p.r * 2)
       ctx.restore()
     }

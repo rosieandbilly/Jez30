@@ -106,10 +106,6 @@ function loadData() {
   return migrate({ ...fresh, schemaVersion: 1 })
 }
 
-function loadTheme() {
-  try { return localStorage.getItem('jez30-theme') || 'light' } catch { return 'light' }
-}
-
 function loadAchievements() {
   try { return JSON.parse(localStorage.getItem(ACH_KEY) || '[]') } catch { return [] }
 }
@@ -132,7 +128,6 @@ export default function App() {
   const [tab, setTab]           = useState('history')
   const [detailId, setDetailId] = useState(null)
   const [prefillDate, setPrefillDate] = useState(null)
-  const [theme, setTheme]       = useState(loadTheme)
 
   // ── Personalization state ──────────────────────────────────────────────────
   const [celebration, setCelebration]         = useState({ open: false, events: [] })
@@ -168,15 +163,6 @@ export default function App() {
       }
     } catch {}
   }, [data])
-
-  useEffect(() => {
-    try { localStorage.setItem('jez30-theme', theme) } catch {}
-    document.documentElement.classList.toggle('dark-mode', theme === 'dark')
-  }, [theme])
-
-  function toggleTheme() {
-    setTheme(t => t === 'dark' ? 'light' : 'dark')
-  }
 
   // ── Weekly recap: show once per Sunday ────────────────────────────────────
 
@@ -428,8 +414,6 @@ export default function App() {
               onSelect={handleSelectWorkout}
               onExport={handleExport}
               onImport={handleImport}
-              theme={theme}
-              onToggleTheme={toggleTheme}
             />
           </>
         )}
