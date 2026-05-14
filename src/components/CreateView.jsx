@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import {
   getTopSet, round2_5, generateWarmups, findPrevWorkout,
   todayLocalKey, formatDate,
