@@ -71,16 +71,15 @@ function calcNextSet(ex, lastTop) {
     return { weight: lastTop.weight, reps: lastTop.reps + 1 }
   }
 
-  // 'none' or 'manual_suggestion_only' — carry forward last session
   return { weight: lastTop.weight, reps: lastTop.reps }
 }
 
 function buildWorkoutFromTemplate(template, workouts) {
-  const last = findPrevWorkout(workouts, template.name, '9999')
+  const last = findPrevWorkout(workouts || [], template.name, '9999')
 
-  return template.exercises.map(ex => {
-    const lastEx  = last?.exercises.find(e => e.name === ex.name)
-    const lastTop = lastEx ? getTopSet(lastEx) : null
+  return (template.exercises || []).map(ex => {
+    const lastEx  = last?.exercises?.find(e => e.name === ex.name)
+    const lastTop = lastEx && (lastEx.sets || []).length ? getTopSet(lastEx) : null
 
     const { weight: topWeight, reps: topReps } = calcNextSet(ex, lastTop)
 
@@ -91,6 +90,7 @@ function buildWorkoutFromTemplate(template, workouts) {
 
     return {
       name: ex.name,
+      notes: '',
       sets: [
         ...warmups,
         { weight: topWeight, reps: topReps, type: 'top' },
@@ -171,20 +171,82 @@ function RestTimer({ onClose }) {
   )
 }
 
+// ─── Exercise picker for the workout builder ──────────────────────────────────
+
+function WorkoutExercisePicker({ libraryExercises, existingNames, onAdd, onClose }) {
+  const [search, setSearch] = useState('')
+  const filtered = (libraryExercises || []).filter(ex =>
+    !existingNames.has(ex.name) &&
+    (!search || ex.name.toLowerCase().includes(search.toLowerCase()))
+  )
+  return (
+    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="modal-sheet">
+        <div className="modal-handle" />
+        <div className="modal-title">Add Exercise</div>
+        <div className="modal-sheet-body">
+          <input
+            className="input"
+            type="search"
+            placeholder="Search exercises…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            autoFocus
+          />
+          {filtered.length === 0 ? (
+            <div className="c-dim fs-13" style={{ padding: '12px 0', textAlign: 'center' }}>
+              {(libraryExercises || []).length === 0
+                ? 'No exercises in library — add some in Exercises first.'
+                : 'All exercises already added.'}
+            </div>
+          ) : (
+            <div className="picker-list">
+              {filtered.map(ex => (
+                <div
+                  key={ex.id}
+                  className="ex-checkbox-row"
+                  onClick={() => onAdd(ex.name)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>{ex.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 1 }}>{ex.bodyArea}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="modal-sheet-footer">
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Workout Builder ──────────────────────────────────────────────────────────
 
-function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
+function WorkoutBuilder({ template, workouts, exercises: libraryExercises, onSave, onBack, prefillDate }) {
   const today = todayLocalKey()
   const [workoutDate, setWorkoutDate] = useState(prefillDate || today)
   const [exercises, setExercises]     = useState(() =>
     buildWorkoutFromTemplate(template, workouts).map(ex => ({
       ...ex,
-      sets: ex.sets.map(s => ({ ...s, weight: String(s.weight), reps: String(s.reps), done: false })),
+      notes: ex.notes || '',
+      sets: (ex.sets || []).map(s => ({
+        ...s,
+        weight: String(s.weight ?? 20),
+        reps: String(s.reps ?? 8),
+        done: false,
+      })),
     }))
   )
-  const [notes, setNotes]       = useState('')
-  const [saveError, setSaveError] = useState('')
-  const [showTimer, setShowTimer] = useState(false)
+  const [notes, setNotes]           = useState('')
+  const [saveError, setSaveError]   = useState('')
+  const [showTimer, setShowTimer]   = useState(false)
+  const [showExPicker, setShowExPicker] = useState(false)
+  const [notesOpen, setNotesOpen]   = useState(new Set())
 
   useEffect(() => {
     if (prefillDate) setWorkoutDate(prefillDate)
@@ -223,9 +285,70 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
     }))
   }, [])
 
+  const addSet = useCallback((exIdx) => {
+    setExercises(prev => prev.map((ex, i) => {
+      if (i !== exIdx) return ex
+      const last = ex.sets[ex.sets.length - 1] || { weight: '20', reps: '8', type: 'working' }
+      return { ...ex, sets: [...ex.sets, { weight: last.weight, reps: last.reps, type: 'working', done: false }] }
+    }))
+  }, [])
+
+  const removeSet = useCallback((exIdx, setIdx) => {
+    setExercises(prev => prev.map((ex, i) => {
+      if (i !== exIdx || ex.sets.length <= 1) return ex
+      return { ...ex, sets: ex.sets.filter((_, j) => j !== setIdx) }
+    }))
+  }, [])
+
+  const removeExercise = useCallback((exIdx) => {
+    setExercises(prev => prev.filter((_, i) => i !== exIdx))
+    setNotesOpen(prev => {
+      const s = new Set()
+      prev.forEach(idx => { if (idx !== exIdx) s.add(idx > exIdx ? idx - 1 : idx) })
+      return s
+    })
+  }, [])
+
+  const addExercise = useCallback((exName) => {
+    // Seed starting weight from workout history if available
+    let defaultWeight = 20
+    let defaultReps = 8
+    for (const w of (workouts || [])) {
+      const found = (w.exercises || []).find(e => e.name === exName)
+      if (found && (found.sets || []).length) {
+        const top = getTopSet(found)
+        if (top?.weight > 0) { defaultWeight = top.weight; defaultReps = top.reps }
+        break
+      }
+    }
+    setExercises(prev => [...prev, {
+      name: exName,
+      notes: '',
+      sets: [{ weight: String(defaultWeight), reps: String(defaultReps), type: 'working', done: false }],
+    }])
+    setShowExPicker(false)
+  }, [workouts])
+
+  const updateExNotes = useCallback((exIdx, value) => {
+    setExercises(prev => prev.map((ex, i) => i !== exIdx ? ex : { ...ex, notes: value }))
+  }, [])
+
+  function toggleNotes(exIdx) {
+    setNotesOpen(prev => {
+      const s = new Set(prev)
+      if (s.has(exIdx)) s.delete(exIdx)
+      else s.add(exIdx)
+      return s
+    })
+  }
+
   function handleSave() {
+    if (exercises.length === 0) {
+      setSaveError('Add at least one exercise before saving.')
+      return
+    }
     for (const ex of exercises) {
-      for (const set of ex.sets) {
+      for (const set of (ex.sets || [])) {
         const w = parseFloat(set.weight)
         const r = parseInt(set.reps, 10)
         if (isNaN(w) || w < 0) {
@@ -246,17 +369,20 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
       template: template.name,
       notes: notes.trim(),
       exercises: exercises.map(ex => ({
-        ...ex,
+        name: ex.name,
+        notes: ex.notes || '',
         sets: ex.sets.map(s => ({
-          ...s,
           weight: parseFloat(s.weight),
           reps: parseInt(s.reps, 10),
+          type: s.type,
+          done: s.done,
         })),
       })),
     })
   }
 
-  const last = findPrevWorkout(workouts, template.name, '9999')
+  const last = findPrevWorkout(workouts || [], template.name, '9999')
+  const existingNames = new Set(exercises.map(e => e.name))
 
   return (
     <div>
@@ -286,12 +412,12 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
         </div>
       </div>
 
-      {/* Notes field */}
+      {/* Workout notes */}
       <div style={{ padding: '0 16px 12px' }}>
-        <label className="form-label">Notes (optional)</label>
+        <label className="form-label">Workout Notes (optional)</label>
         <textarea
           className="notes-field"
-          placeholder="How did this session feel? Any PRs, form cues, etc."
+          placeholder="How did this session feel?"
           value={notes}
           onChange={e => setNotes(e.target.value)}
         />
@@ -305,15 +431,31 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
         </div>
       )}
 
+      {/* Exercise cards */}
       {exercises.map((ex, exIdx) => {
-        const lastEx   = last?.exercises.find(e => e.name === ex.name)
-        const lastTop  = lastEx ? getTopSet(lastEx) : null
+        const lastEx   = last?.exercises?.find(e => e.name === ex.name)
+        const lastTop  = lastEx && (lastEx.sets || []).length ? getTopSet(lastEx) : null
         const thisTop  = ex.sets.find(s => s.type === 'top')
         const topW     = parseFloat(thisTop?.weight)
 
         return (
           <div className="card" key={exIdx}>
-            <div className="exercise-name">{ex.name}</div>
+            {/* Exercise header with remove button */}
+            <div className="row-sb" style={{ marginBottom: 6 }}>
+              <div className="exercise-name" style={{ marginBottom: 0 }}>{ex.name}</div>
+              <button
+                className="icon-btn danger"
+                onClick={() => removeExercise(exIdx)}
+                aria-label="Remove exercise from workout"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
             {lastTop && (
               <div className="prev-note">
                 Last: <span>{lastTop.weight}kg × {lastTop.reps}</span>
@@ -325,6 +467,7 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
               </div>
             )}
 
+            {/* Sets */}
             {ex.sets.map((set, setIdx) => (
               <div
                 key={setIdx}
@@ -375,11 +518,70 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
                 />
                 <button className="step-btn" onClick={() => stepSet(exIdx, setIdx, 'reps', 1)}>+</button>
                 <span className="set-unit">rp</span>
+
+                {/* Remove set button */}
+                <button
+                  className="icon-btn danger"
+                  style={{ marginLeft: 4 }}
+                  onClick={() => removeSet(exIdx, setIdx)}
+                  aria-label="Remove set"
+                  disabled={ex.sets.length <= 1}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
               </div>
             ))}
+
+            {/* Add Set + Notes toggle */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button
+                className="btn btn-secondary"
+                style={{ flex: 1, height: 34, fontSize: 13 }}
+                onClick={() => addSet(exIdx)}
+              >
+                + Add Set
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{
+                  height: 34, fontSize: 13, width: 'auto', padding: '0 12px',
+                  color: notesOpen.has(exIdx) ? 'var(--primary)' : undefined,
+                  borderColor: notesOpen.has(exIdx) ? 'var(--primary)' : undefined,
+                }}
+                onClick={() => toggleNotes(exIdx)}
+              >
+                Notes
+              </button>
+            </div>
+
+            {/* Per-exercise notes */}
+            {notesOpen.has(exIdx) && (
+              <textarea
+                className="notes-field"
+                placeholder="Exercise note (e.g. elbow tight, slow eccentric…)"
+                value={ex.notes}
+                onChange={e => updateExNotes(exIdx, e.target.value)}
+                style={{ marginTop: 8, fontSize: 13 }}
+              />
+            )}
           </div>
         )
       })}
+
+      {/* Add Exercise button */}
+      <div style={{ padding: '0 16px 10px' }}>
+        <button
+          className="btn btn-secondary"
+          style={{ width: '100%' }}
+          onClick={() => setShowExPicker(true)}
+        >
+          + Add Exercise
+        </button>
+      </div>
 
       {saveError && <div className="save-error">{saveError}</div>}
 
@@ -401,6 +603,15 @@ function WorkoutBuilder({ template, workouts, onSave, onBack, prefillDate }) {
       </div>
 
       {showTimer && <RestTimer onClose={() => setShowTimer(false)} />}
+
+      {showExPicker && (
+        <WorkoutExercisePicker
+          libraryExercises={libraryExercises || []}
+          existingNames={existingNames}
+          onAdd={addExercise}
+          onClose={() => setShowExPicker(false)}
+        />
+      )}
     </div>
   )
 }
@@ -546,7 +757,7 @@ function ExercisesPanel({ exercises, onUpdate }) {
     try { localStorage.setItem(CUSTOM_AREAS_KEY, JSON.stringify(updated)) } catch {}
   }
 
-  const filtered = exercises
+  const filtered = (exercises || [])
     .filter(ex => {
       const s = search.trim().toLowerCase()
       return (
@@ -557,18 +768,18 @@ function ExercisesPanel({ exercises, onUpdate }) {
     .sort((a, b) => a.name.localeCompare(b.name))
 
   function handleAdd(fields) {
-    const dup = exercises.find(e => e.name.toLowerCase() === fields.name.toLowerCase())
+    const dup = (exercises || []).find(e => e.name.toLowerCase() === fields.name.toLowerCase())
     if (dup) return { error: `"${fields.name}" already exists` }
-    onUpdate([...exercises, { id: `ex-${Date.now()}`, ...fields }])
+    onUpdate([...(exercises || []), { id: `ex-${Date.now()}`, ...fields }])
     return {}
   }
 
   function handleDelete(id) {
-    onUpdate(exercises.filter(e => e.id !== id))
+    onUpdate((exercises || []).filter(e => e.id !== id))
     setDeleteId(null)
   }
 
-  const deleteTarget = deleteId ? exercises.find(e => e.id === deleteId) : null
+  const deleteTarget = deleteId ? (exercises || []).find(e => e.id === deleteId) : null
 
   return (
     <div>
@@ -712,7 +923,7 @@ function TemplateEditor({ exercises, template, onSave, onClose }) {
 
   const selectedNames = new Set(exerciseConfigs.map(e => e.name))
 
-  const filteredEx = exercises.filter(ex =>
+  const filteredEx = (exercises || []).filter(ex =>
     !search || ex.name.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -720,8 +931,7 @@ function TemplateEditor({ exercises, template, onSave, onClose }) {
     if (selectedNames.has(exName)) {
       setExerciseConfigs(prev => prev.filter(c => c.name !== exName))
     } else {
-      // Preserve existing config from template if re-adding
-      const existing = template?.exercises.find(e => e.name === exName)
+      const existing = template?.exercises?.find(e => e.name === exName)
       setExerciseConfigs(prev => [...prev, {
         name:                exName,
         defaultWeight:       existing?.defaultWeight       ?? 20,
@@ -975,7 +1185,7 @@ function TemplateEditor({ exercises, template, onSave, onClose }) {
             style={{ marginBottom: 8 }}
           />
 
-          {exercises.length === 0 ? (
+          {(exercises || []).length === 0 ? (
             <div className="c-dim fs-13" style={{ padding: '10px 0' }}>
               Add exercises in Create → Exercises first.
             </div>
@@ -1042,12 +1252,12 @@ function WorkoutsPanel({ templates, exercises, onUpdate, onStartWorkout, prefill
   const [editingId, setEditingId] = useState(null)
   const [deleteId, setDeleteId]   = useState(null)
 
-  const editingTemplate = editingId ? templates.find(t => t.id === editingId) : null
-  const deleteTarget    = deleteId  ? templates.find(t => t.id === deleteId)  : null
+  const editingTemplate = editingId ? (templates || []).find(t => t.id === editingId) : null
+  const deleteTarget    = deleteId  ? (templates || []).find(t => t.id === deleteId)  : null
 
-  function handleCreate(tpl) { onUpdate([...templates, tpl]); setShowNew(false) }
-  function handleEdit(updated) { onUpdate(templates.map(t => t.id === updated.id ? updated : t)); setEditingId(null) }
-  function handleDelete(id) { onUpdate(templates.filter(t => t.id !== id)); setDeleteId(null) }
+  function handleCreate(tpl) { onUpdate([...(templates || []), tpl]); setShowNew(false) }
+  function handleEdit(updated) { onUpdate((templates || []).map(t => t.id === updated.id ? updated : t)); setEditingId(null) }
+  function handleDelete(id) { onUpdate((templates || []).filter(t => t.id !== id)); setDeleteId(null) }
 
   return (
     <div>
@@ -1059,18 +1269,18 @@ function WorkoutsPanel({ templates, exercises, onUpdate, onStartWorkout, prefill
         </div>
       )}
 
-      {templates.length === 0 ? (
+      {(templates || []).length === 0 ? (
         <div className="card" style={{ textAlign: 'center' }}>
           <span className="c-dim fs-13">No workout templates yet. Create one below.</span>
         </div>
       ) : (
-        templates.map(tpl => (
+        (templates || []).map(tpl => (
           <div key={tpl.id} className="card">
             <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 6 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 17, fontWeight: 700 }}>{tpl.name}</div>
                 <div className="fs-12 c-dim" style={{ marginTop: 2 }}>
-                  {tpl.exercises.length} exercise{tpl.exercises.length !== 1 ? 's' : ''}
+                  {(tpl.exercises || []).length} exercise{(tpl.exercises || []).length !== 1 ? 's' : ''}
                 </div>
               </div>
               <div className="tpl-card-actions">
@@ -1092,7 +1302,7 @@ function WorkoutsPanel({ templates, exercises, onUpdate, onStartWorkout, prefill
             </div>
 
             <div className="fs-12 c-dim" style={{ marginBottom: 12, lineHeight: 1.6 }}>
-              {tpl.exercises.map(e => e.name).join(' · ')}
+              {(tpl.exercises || []).map(e => e.name).join(' · ')}
             </div>
 
             <button className="btn btn-primary" onClick={() => onStartWorkout(tpl)}>
@@ -1160,7 +1370,8 @@ export default function CreateView({
     return (
       <WorkoutBuilder
         template={activeTemplate}
-        workouts={workouts}
+        workouts={workouts || []}
+        exercises={exercises || []}
         onSave={workout => { onSave(workout); setActiveTemplate(null) }}
         onBack={() => setActiveTemplate(null)}
         prefillDate={prefillDate}
@@ -1190,12 +1401,12 @@ export default function CreateView({
       </div>
 
       {section === 'exercises' && (
-        <ExercisesPanel exercises={exercises} onUpdate={onUpdateExercises} />
+        <ExercisesPanel exercises={exercises || []} onUpdate={onUpdateExercises} />
       )}
       {section === 'workouts' && (
         <WorkoutsPanel
-          templates={templates}
-          exercises={exercises}
+          templates={templates || []}
+          exercises={exercises || []}
           onUpdate={onUpdateTemplates}
           onStartWorkout={setActiveTemplate}
           prefillDate={prefillDate}

@@ -5,11 +5,11 @@ import {
   round2_5, todayLocalKey,
 } from '../utils'
 
-// ─── Exercise picker for edit mode ────────────────────────────────────────────
+// ─── Exercise picker modal ────────────────────────────────────────────────────
 
 function ExercisePickerModal({ exercises, existingNames, onAdd, onClose }) {
   const [search, setSearch] = useState('')
-  const filtered = exercises.filter(ex =>
+  const filtered = (exercises || []).filter(ex =>
     !existingNames.has(ex.name) &&
     (!search || ex.name.toLowerCase().includes(search.toLowerCase()))
   )
@@ -18,37 +18,38 @@ function ExercisePickerModal({ exercises, existingNames, onAdd, onClose }) {
       <div className="modal-sheet">
         <div className="modal-handle" />
         <div className="modal-title">Add Exercise</div>
-        <input
-          className="input"
-          type="search"
-          placeholder="Search…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ marginBottom: 10 }}
-          autoFocus
-        />
-        {filtered.length === 0 ? (
-          <div className="c-dim fs-13" style={{ padding: '10px 0', textAlign: 'center' }}>
-            {exercises.length === 0 ? 'No exercises in library.' : 'No matches.'}
-          </div>
-        ) : (
-          <div className="picker-list" style={{ maxHeight: 300, overflowY: 'auto' }}>
-            {filtered.map(ex => (
-              <div
-                key={ex.id}
-                className="ex-checkbox-row"
-                onClick={() => onAdd(ex.name)}
-                style={{ cursor: 'pointer' }}
-              >
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{ex.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 1 }}>{ex.bodyArea}</div>
-              </div>
-            ))}
-          </div>
-        )}
-        <button className="btn btn-secondary" style={{ marginTop: 12 }} onClick={onClose}>
-          Cancel
-        </button>
+        <div className="modal-sheet-body">
+          <input
+            className="input"
+            type="search"
+            placeholder="Search…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            autoFocus
+          />
+          {filtered.length === 0 ? (
+            <div className="c-dim fs-13" style={{ padding: '10px 0', textAlign: 'center' }}>
+              {(exercises || []).length === 0 ? 'No exercises in library.' : 'No matches.'}
+            </div>
+          ) : (
+            <div className="picker-list">
+              {filtered.map(ex => (
+                <div
+                  key={ex.id}
+                  className="ex-checkbox-row"
+                  onClick={() => onAdd(ex.name)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{ex.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 1 }}>{ex.bodyArea}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="modal-sheet-footer">
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+        </div>
       </div>
     </div>
   )
@@ -59,13 +60,26 @@ function ExercisePickerModal({ exercises, existingNames, onAdd, onClose }) {
 function WorkoutEditView({ workout, exercises, onSave, onCancel }) {
   const today = todayLocalKey()
   const [workoutDate, setWorkoutDate] = useState(
-    workout.localDateKey || workout.date.split('T')[0]
+    workout.localDateKey || workout.date?.split('T')[0] || today
   )
+  const [workoutNotes, setWorkoutNotes] = useState(workout.notes || '')
   const [exList, setExList] = useState(() =>
-    workout.exercises.map(ex => ({
-      ...ex,
-      sets: ex.sets.map(s => ({ ...s, weight: String(s.weight), reps: String(s.reps) })),
+    (workout.exercises || []).map(ex => ({
+      name: ex.name || '',
+      notes: ex.notes || '',
+      sets: (ex.sets || []).map(s => ({
+        weight: String(s.weight ?? 20),
+        reps: String(s.reps ?? 8),
+        type: s.type || 'working',
+        done: s.done || false,
+      })),
     }))
+  )
+  // Track which exercise note panels are open (auto-open if exercise already has notes)
+  const [notesOpen, setNotesOpen] = useState(() =>
+    new Set(
+      (workout.exercises || []).reduce((acc, ex, i) => { if (ex.notes) acc.push(i); return acc }, [])
+    )
   )
   const [saveError, setSaveError]       = useState('')
   const [showCancel, setShowCancel]     = useState(false)
@@ -100,7 +114,7 @@ function WorkoutEditView({ workout, exercises, onSave, onCancel }) {
     setExList(prev => prev.map((ex, i) => {
       if (i !== exIdx) return ex
       const last = ex.sets[ex.sets.length - 1] || { weight: '20', reps: '8', type: 'working' }
-      return { ...ex, sets: [...ex.sets, { weight: last.weight, reps: last.reps, type: 'working' }] }
+      return { ...ex, sets: [...ex.sets, { weight: last.weight, reps: last.reps, type: 'working', done: false }] }
     }))
     mark()
   }
@@ -115,13 +129,32 @@ function WorkoutEditView({ workout, exercises, onSave, onCancel }) {
 
   function removeExercise(exIdx) {
     setExList(prev => prev.filter((_, i) => i !== exIdx))
+    setNotesOpen(prev => {
+      const s = new Set()
+      prev.forEach(idx => { if (idx !== exIdx) s.add(idx > exIdx ? idx - 1 : idx) })
+      return s
+    })
     mark()
   }
 
   function addExercise(name) {
-    setExList(prev => [...prev, { name, sets: [{ weight: '20', reps: '8', type: 'working' }] }])
+    setExList(prev => [...prev, { name, notes: '', sets: [{ weight: '20', reps: '8', type: 'working', done: false }] }])
     setShowExPicker(false)
     mark()
+  }
+
+  function updateExNotes(exIdx, value) {
+    setExList(prev => prev.map((ex, i) => i !== exIdx ? ex : { ...ex, notes: value }))
+    mark()
+  }
+
+  function toggleNotes(exIdx) {
+    setNotesOpen(prev => {
+      const s = new Set(prev)
+      if (s.has(exIdx)) s.delete(exIdx)
+      else s.add(exIdx)
+      return s
+    })
   }
 
   function cycleType(exIdx, setIdx) {
@@ -137,8 +170,9 @@ function WorkoutEditView({ workout, exercises, onSave, onCancel }) {
   }
 
   function handleSave() {
+    if (exList.length === 0) { setSaveError('Add at least one exercise before saving.'); return }
     for (const ex of exList) {
-      for (const set of ex.sets) {
+      for (const set of (ex.sets || [])) {
         const w = parseFloat(set.weight)
         const r = parseInt(set.reps, 10)
         if (isNaN(w) || w < 0) { setSaveError(`Invalid weight for "${ex.name}"`); return }
@@ -149,12 +183,15 @@ function WorkoutEditView({ workout, exercises, onSave, onCancel }) {
       ...workout,
       date: workoutDate + 'T12:00:00',
       localDateKey: workoutDate,
+      notes: workoutNotes.trim(),
       exercises: exList.map(ex => ({
-        ...ex,
+        name: ex.name,
+        notes: ex.notes || '',
         sets: ex.sets.map(s => ({
-          ...s,
           weight: parseFloat(s.weight),
           reps: parseInt(s.reps, 10),
+          type: s.type || 'working',
+          done: s.done || false,
         })),
       })),
     })
@@ -178,15 +215,19 @@ function WorkoutEditView({ workout, exercises, onSave, onCancel }) {
           Cancel
         </button>
         <span className="flex-1" />
+        {dirty && (
+          <span className="fs-12 c-dim" style={{ marginRight: 8 }}>Unsaved</span>
+        )}
         <button
           className="btn btn-primary"
           style={{ height: 32, fontSize: 14, width: 'auto', padding: '0 14px', borderRadius: 'var(--radius-sm)' }}
           onClick={handleSave}
         >
-          Save
+          Save Changes
         </button>
       </div>
 
+      {/* Date */}
       <div className="builder-date-row">
         <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label">Workout Date</label>
@@ -200,8 +241,21 @@ function WorkoutEditView({ workout, exercises, onSave, onCancel }) {
         </div>
       </div>
 
+      {/* Workout-level notes */}
+      <div style={{ padding: '0 16px 12px' }}>
+        <label className="form-label">Workout Notes</label>
+        <textarea
+          className="notes-field"
+          placeholder="How did this session feel? (optional)"
+          value={workoutNotes}
+          onChange={e => { setWorkoutNotes(e.target.value); mark() }}
+        />
+      </div>
+
+      {/* Exercise cards */}
       {exList.map((ex, exIdx) => (
         <div className="card" key={exIdx}>
+          {/* Exercise header */}
           <div className="row-sb" style={{ marginBottom: 8 }}>
             <span className="exercise-name" style={{ marginBottom: 0 }}>{ex.name}</span>
             <button
@@ -217,6 +271,7 @@ function WorkoutEditView({ workout, exercises, onSave, onCancel }) {
             </button>
           </div>
 
+          {/* Sets */}
           {ex.sets.map((set, setIdx) => (
             <div
               key={setIdx}
@@ -271,13 +326,38 @@ function WorkoutEditView({ workout, exercises, onSave, onCancel }) {
             </div>
           ))}
 
-          <button
-            className="btn btn-secondary"
-            style={{ marginTop: 10, height: 34, fontSize: 13 }}
-            onClick={() => addSet(exIdx)}
-          >
-            + Add Set
-          </button>
+          {/* Add Set + Notes toggle */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button
+              className="btn btn-secondary"
+              style={{ flex: 1, height: 34, fontSize: 13 }}
+              onClick={() => addSet(exIdx)}
+            >
+              + Add Set
+            </button>
+            <button
+              className="btn btn-secondary"
+              style={{
+                height: 34, fontSize: 13, width: 'auto', padding: '0 12px',
+                color: notesOpen.has(exIdx) ? 'var(--primary)' : undefined,
+                borderColor: notesOpen.has(exIdx) ? 'var(--primary)' : undefined,
+              }}
+              onClick={() => toggleNotes(exIdx)}
+            >
+              Notes
+            </button>
+          </div>
+
+          {/* Per-exercise notes textarea */}
+          {notesOpen.has(exIdx) && (
+            <textarea
+              className="notes-field"
+              placeholder="Exercise note (e.g. elbow tight, slow eccentric…)"
+              value={ex.notes}
+              onChange={e => updateExNotes(exIdx, e.target.value)}
+              style={{ marginTop: 8, fontSize: 13 }}
+            />
+          )}
         </div>
       ))}
 
@@ -291,9 +371,10 @@ function WorkoutEditView({ workout, exercises, onSave, onCancel }) {
 
       <div style={{ height: 24 }} />
 
+      {/* Discard confirm */}
       {showCancel && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowCancel(false) }}>
-          <div className="modal-sheet">
+          <div className="modal-sheet modal-simple">
             <div className="modal-handle" />
             <div className="confirm-msg">Discard changes?</div>
             <div className="confirm-sub">Your edits will be lost.</div>
@@ -313,6 +394,7 @@ function WorkoutEditView({ workout, exercises, onSave, onCancel }) {
         </div>
       )}
 
+      {/* Add exercise picker */}
       {showExPicker && (
         <ExercisePickerModal
           exercises={exercises}
@@ -331,6 +413,8 @@ export default function WorkoutDetail({ workout, workouts, exercises, onBack, on
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [isEditing, setIsEditing]         = useState(false)
 
+  if (!workout) return null
+
   if (isEditing) {
     return (
       <WorkoutEditView
@@ -342,13 +426,15 @@ export default function WorkoutDetail({ workout, workouts, exercises, onBack, on
     )
   }
 
-  const prev    = findPrevWorkout(workouts, workout.template, workout.date)
-  const threeWk = find3WeeksAgo(workouts, workout.template, workout.date, prev?.id)
+  const prev    = findPrevWorkout(workouts || [], workout.template, workout.date)
+  const threeWk = find3WeeksAgo(workouts || [], workout.template, workout.date, prev?.id)
 
+  const exercises_ = workout.exercises || []
   const totalVol  = calcTotalVolume(workout)
-  const topWeight = workout.exercises.reduce((max, ex) => {
+  const topWeight = exercises_.reduce((max, ex) => {
+    if (!(ex.sets || []).length) return max
     const t = getTopSet(ex)
-    return t.weight > max ? t.weight : max
+    return (t?.weight ?? 0) > max ? (t?.weight ?? 0) : max
   }, 0)
 
   return (
@@ -400,7 +486,7 @@ export default function WorkoutDetail({ workout, workouts, exercises, onBack, on
       {/* Metric tiles */}
       <div className="metric-row">
         <div className="metric-tile">
-          <div className="metric-value">{workout.exercises.length}</div>
+          <div className="metric-value">{exercises_.length}</div>
           <div className="metric-label">Exercises</div>
         </div>
         <div className="metric-tile">
@@ -429,7 +515,7 @@ export default function WorkoutDetail({ workout, workouts, exercises, onBack, on
         </div>
       )}
 
-      {/* Notes */}
+      {/* Workout notes */}
       {workout.notes && (
         <div className="card" style={{ padding: '12px 16px' }}>
           <div className="fs-12 c-dim" style={{ marginBottom: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Notes</div>
@@ -438,13 +524,13 @@ export default function WorkoutDetail({ workout, workouts, exercises, onBack, on
       )}
 
       {/* Exercise cards */}
-      {workout.exercises.map((ex, i) => {
-        const prevEx   = prev?.exercises.find(e => e.name === ex.name)
-        const threeEx  = threeWk?.exercises.find(e => e.name === ex.name)
+      {exercises_.map((ex, i) => {
+        const prevEx   = prev?.exercises?.find(e => e.name === ex.name)
+        const threeEx  = threeWk?.exercises?.find(e => e.name === ex.name)
         const prevTop  = prevEx  ? getTopSet(prevEx)  : null
         const threeTop = threeEx ? getTopSet(threeEx) : null
-        const thisTop  = getTopSet(ex)
-        const isNewPR  = prevTop && thisTop.weight > prevTop.weight
+        const thisTop  = (ex.sets || []).length ? getTopSet(ex) : null
+        const isNewPR  = prevTop && thisTop && thisTop.weight > prevTop.weight
 
         return (
           <div className="card" key={i}>
@@ -454,7 +540,7 @@ export default function WorkoutDetail({ workout, workouts, exercises, onBack, on
             </div>
 
             <div className="sets-row">
-              {ex.sets.map((set, j) => (
+              {(ex.sets || []).map((set, j) => (
                 <span
                   key={j}
                   className={`set-chip${set.type === 'top' ? ' top' : set.type === 'warmup' ? ' warmup' : ''}${set.done ? ' done-chip' : ''}`}
@@ -471,7 +557,7 @@ export default function WorkoutDetail({ workout, workouts, exercises, onBack, on
               ))}
             </div>
 
-            {(prevTop || threeTop) && (
+            {(prevTop || threeTop) && thisTop && (
               <div className="comparison">
                 {prevTop && (
                   <span>
@@ -497,16 +583,27 @@ export default function WorkoutDetail({ workout, workouts, exercises, onBack, on
                 )}
               </div>
             )}
+
+            {/* Per-exercise session notes */}
+            {ex.notes && (
+              <div style={{
+                marginTop: 8, fontSize: 13, color: 'var(--text-dim)',
+                fontStyle: 'italic', lineHeight: 1.4, borderTop: '1px solid var(--border)',
+                paddingTop: 8,
+              }}>
+                {ex.notes}
+              </div>
+            )}
           </div>
         )
       })}
 
       <div style={{ height: 16 }} />
 
-      {/* Delete confirmation modal */}
+      {/* Delete confirmation */}
       {confirmDelete && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(false) }}>
-          <div className="modal-sheet">
+          <div className="modal-sheet modal-simple">
             <div className="modal-handle" />
             <div className="confirm-msg">Delete this workout?</div>
             <div className="confirm-sub">
